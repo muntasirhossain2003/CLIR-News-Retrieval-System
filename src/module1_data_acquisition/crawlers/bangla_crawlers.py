@@ -51,9 +51,9 @@ def get_bangla_crawlers():
         language="bangla",
         source_name="bangla_tribune",
         selectors={
-            'article_links': 'a',
-            'title': 'h1',
-            'body': 'div.contents, article',
+            'article_links': 'a',  
+            'title': 'h1.title',   
+            'body': 'div.viewport.jw_article_body', 
             'date': 'span.time_rel',
             'date_attr': 'title'
         }

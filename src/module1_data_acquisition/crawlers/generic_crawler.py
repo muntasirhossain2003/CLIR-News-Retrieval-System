@@ -21,13 +21,10 @@ class GenericNewsCrawler(BaseCrawler):
         self.logger.info(f"Starting crawl for {self.source_name}...")
         count = 0
         visited_urls = set()
-        
-        # Start with the base url (and potentially other category pages if we added them)
+
         start_urls = [self.base_url]
         
-        # We might want to crawl category pages too, but for simplicity let's stick to base for now
-        # or list of known categories.
-        
+
         for url in start_urls:
             if count >= limit:
                 break
@@ -94,7 +91,7 @@ class GenericNewsCrawler(BaseCrawler):
             data['title'] = clean_text(title_tag.text)
         else:
             self.logger.warning(f"No title found for {url}")
-            return None # Skip if no title
+            return None 
 
         # Body
         body_selector = self.selectors.get('body', 'article')

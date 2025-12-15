@@ -28,7 +28,6 @@ class BaseCrawler(ABC):
         os.makedirs("logs", exist_ok=True)
         
         # Setup logging
-        # We'll use a shared logger configuration but get a specific logger for this source
         self.setup_logging()
         self.logger = logging.getLogger(source_name)
 
@@ -38,7 +37,7 @@ class BaseCrawler(ABC):
             filename=log_file,
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            encoding='utf-8' # Ensure utf-8 for Bangla logs
+            encoding='utf-8' #utf-8 for Bangla logs
         )
 
     def fetch_page(self, url, retries=3):
