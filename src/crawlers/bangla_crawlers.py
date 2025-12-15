@@ -87,7 +87,7 @@ def get_bangla_crawlers():
 
     # 7. Samakal
     crawlers.append(SeleniumCrawler(
-        base_url="https://www.samakal.com/",
+        base_url="https://samakal.com/latest/news",
         language="bangla",
         source_name="samakal",
         selectors={
