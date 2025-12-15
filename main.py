@@ -3,7 +3,7 @@ import argparse
 import sys
 import os
 
-# Add src to path
+
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.module1_data_acquisition.crawlers.bangla_crawlers import get_bangla_crawlers

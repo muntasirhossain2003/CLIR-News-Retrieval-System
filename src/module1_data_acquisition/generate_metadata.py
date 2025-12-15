@@ -32,9 +32,25 @@ def generate_metadata():
             print(f"Error reading {filepath}: {e}")
             
     df = pd.DataFrame(metadata)
+    
+    # Cleaning steps
+    print(f"Initial count: {len(df)}")
+    
+    # Drop duplicates by URL
+    if 'url' in df.columns:
+        df = df.drop_duplicates(subset=['url'])
+        print(f"After removing duplicates: {len(df)}")
+        
+    # Drop entries with missing titles or URLs
+    df = df.dropna(subset=['url', 'title'])
+    print(f"After removing missing title/url: {len(df)}")
+    
+    # Sort
+    df = df.sort_values(by=['language', 'source', 'date'], ascending=[True, True, False])
+
     output_path = os.path.join("data", "metadata.csv")
     df.to_csv(output_path, index=False, encoding='utf-8')
-    print(f"Saved metadata to {output_path}")
+    print(f"Saved cleaned metadata to {output_path}")
     print(df.groupby(['language', 'source']).size())
 
 if __name__ == "__main__":
