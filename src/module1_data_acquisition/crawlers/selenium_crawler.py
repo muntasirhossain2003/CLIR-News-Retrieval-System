@@ -11,11 +11,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from ..utils import clean_text, parse_date
 
 class SeleniumCrawler(BaseCrawler):
-    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=2.0, pagination_param=None):
+    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=2.0, pagination_param=None, load_more_selector=None, max_load_more_clicks=50):
         super().__init__(base_url=base_url, language=language, source_name=source_name, delay=delay)
         self.selectors = selectors
         self.start_urls = start_urls if start_urls else [base_url]
         self.pagination_param = pagination_param
+        self.load_more_selector = load_more_selector
+        self.max_load_more_clicks = max_load_more_clicks
         self.driver = None
         
     def _setup_driver(self):
@@ -75,66 +77,206 @@ class SeleniumCrawler(BaseCrawler):
         visited_urls = set()
         
         start_urls = self.start_urls
-        self._setup_driver()
+        self._setup_driver() #here opens headless browser
         
         try:
             for url in start_urls:
                 if count >= limit:
                     break
                     
-                # Pagination loop
-                page_num = 1
-                max_pages = 50
+                self.logger.info(f"Processing list page: {url}")
                 
-                while page_num <= max_pages:
-                    if count >= limit:
-                        break
-                        
-                    current_url = url
-                    if hasattr(self, 'pagination_param') and self.pagination_param and page_num > 1:
-                         sep = '&' if '?' in url else '?'
-                         current_url = f"{url}{sep}{self.pagination_param}={page_num}"
+                if self.load_more_selector:
+                    self.driver.get(url)
                     
-                    self.logger.info(f"Processing list page: {current_url}")
-                    soup = self.fetch_page_selenium(current_url)
-                    if not soup:
-                        if page_num > 1: 
-                            break
+                    # Wait for initial articles to load
+                    try:
+                        WebDriverWait(self.driver, 10).until(
+                            EC.presence_of_element_located((By.TAG_NAME, "body"))
+                        )
+                        time.sleep(self.delay)
+                    except Exception as e:
+                        self.logger.error(f"Failed to load {url}: {e}")
                         continue
-                        
-                    article_links = self.extract_links(soup, current_url)
                     
-                    if not article_links:
-                        self.logger.info(f"No links found on {current_url}. Ending pagination.")
-                        break
-                        
-                    self.logger.info(f"Found {len(article_links)} links on {current_url}")
+                    # Keep clicking "আরও" (More) button until we have enough articles
+                    clicks_without_progress = 0
+                    max_clicks_without_progress = 3
                     
-                    links_processed_on_page = 0
-                    for link in article_links:
+                    while count < limit:
+                        # Get current articles
+                        soup = BeautifulSoup(self.driver.page_source, 'lxml')
+                        article_links = self.extract_links(soup, url)
+                        
+                        if not article_links:
+                            self.logger.info("No more articles found.")
+                            break
+                        
+                        # Count how many are NEW (not visited)
+                        new_links = [link for link in article_links if link not in visited_urls]
+                        self.logger.info(f"Found {len(article_links)} total links on page, {len(new_links)} are new")
+                        
+                        # If no new links after clicking button, we might be done
+                        if not new_links:
+                            clicks_without_progress += 1
+                            if clicks_without_progress >= max_clicks_without_progress:
+                                self.logger.info(f"No new articles after {clicks_without_progress} button clicks, ending pagination")
+                                break
+                        else:
+                            clicks_without_progress = 0  # Reset counter when we find new articles
+                        
+                        # Process each NEW article
+                        articles_saved_this_round = 0
+                        for link in new_links:
+                            if count >= limit:
+                                break
+                                
+                            visited_urls.add(link)
+                            print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") 
+                            article_data = self.parse_article(link)
+                            if article_data:
+                                if self.save_article(article_data):
+                                    count += 1
+                                    articles_saved_this_round += 1
+                                    if count % 10 == 0:
+                                        self.logger.info(f"Progress: {count}/{limit}")
+                        
+                        self.logger.info(f"Saved {articles_saved_this_round} articles this round")
+                        
+                        # If we've reached limit, break
                         if count >= limit:
                             break
-                        if link in visited_urls:
+                        
+                        # Try to click "আরও" (More) button to load more articles
+                        try:
+                            # Scroll to bottom to trigger lazy loading
+                            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                            time.sleep(1.5)
+                            
+                            # Try multiple methods to find the "আরও" button
+                            more_button = None
+                            
+                            # Method 1: Try CSS selector if provided
+                            try:
+                                more_button = WebDriverWait(self.driver, 5).until(
+                                    EC.presence_of_element_located((By.CSS_SELECTOR, self.load_more_selector))
+                                )
+                                self.logger.info(f"Found button with selector: {self.load_more_selector}")
+                            except Exception as e:
+                                self.logger.debug(f"CSS selector failed: {str(e)[:50]}")
+                            
+                            # Method 2: Find by text content "আরও"
+                            if not more_button:
+                                try:
+                                    more_button = self.driver.find_element(By.XPATH, "//button[contains(., 'আরও')] | //a[contains(., 'আরও')] | //*[contains(@class, 'load') and contains(., 'আরও')]")
+                                    self.logger.info("Found button by text 'আরও'")
+                                except Exception as e:
+                                    self.logger.debug(f"XPath text search failed: {str(e)[:50]}")
+                            
+                            # Method 3: Find by ID pattern
+                            if not more_button:
+                                try:
+                                    more_button = self.driver.find_element(By.CSS_SELECTOR, "button[id*='ajax_load_more'], a[id*='ajax_load_more'], button[id*='load_more'], a[id*='load_more']")
+                                    self.logger.info("Found button by ID pattern")
+                                except Exception as e:
+                                    self.logger.debug(f"ID pattern search failed: {str(e)[:50]}")
+                            
+                            # Method 4: Find by class pattern
+                            if not more_button:
+                                try:
+                                    more_button = self.driver.find_element(By.CSS_SELECTOR, "button[class*='load-more'], a[class*='load-more'], button[class*='more'], a[class*='more']")
+                                    self.logger.info("Found button by class pattern")
+                                except Exception as e:
+                                    self.logger.debug(f"Class pattern search failed: {str(e)[:50]}")
+                            
+                            if not more_button:
+                                self.logger.info("আরও button not found after trying all methods, ending pagination for this page")
+                                break
+                            
+                            # Scroll to button and wait (even if not visible, try to make it visible)
+                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", more_button)
+                            time.sleep(1.0)
+                            
+                            # Try clicking - use JavaScript which works even on hidden elements
+                            try:
+                                # First try regular click if visible
+                                if more_button.is_displayed():
+                                    try:
+                                        more_button.click()
+                                        self.logger.info("Clicked 'আরও' button with regular click")
+                                    except Exception as click_error:
+                                        self.logger.debug(f"Regular click failed: {str(click_error)[:50]}, trying JS click")
+                                        self.driver.execute_script("arguments[0].click();", more_button)
+                                        self.logger.info("Clicked 'আরও' button with JavaScript")
+                                else:
+                                    # If not visible, use JavaScript directly
+                                    self.driver.execute_script("arguments[0].click();", more_button)
+                                    self.logger.info("Clicked hidden 'আরও' button with JavaScript")
+                                
+                                time.sleep(3)  # Wait for new articles to load
+                            except Exception as click_exc:
+                                self.logger.info(f"Failed to click আরও button: {str(click_exc)[:150]}")
+                                break
+                        except Exception as e:
+                            self.logger.info(f"Exception while trying to click আরও button: {str(e)[:150]}")
+                            break
+                            self.logger.info(f"No more 'আরও' button or not clickable: {str(e)[:100]}")
+                            break
+                else:
+                    # Original pagination logic for non-AJAX sites
+                    page_num = 1
+                    max_pages = 50
+                    
+                    while page_num <= max_pages:
+                        if count >= limit:
+                            break
+                            
+                        current_url = url
+                        if hasattr(self, 'pagination_param') and self.pagination_param and page_num > 1:
+                             sep = '&' if '?' in url else '?'
+                             current_url = f"{url}{sep}{self.pagination_param}={page_num}"
+                        
+                        self.logger.info(f"Processing list page: {current_url}")
+                        soup = self.fetch_page_selenium(current_url)
+                            
+                        if not soup:
+                            if page_num > 1: 
+                                break
                             continue
                             
-                        visited_urls.add(link)
-                        print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") 
-                        article_data = self.parse_article(link)
-                        if article_data:
-                            if self.save_article(article_data):
-                                count += 1
-                                links_processed_on_page += 1
-                                if count % 10 == 0:
-                                    self.logger.info(f"Progress: {count}/{limit}")
-                                    
-                    if links_processed_on_page == 0 and page_num > 1:
-                         self.logger.info("No new links processed on this page. Stopping pagination.")
-                         break
-
-                    if not getattr(self, 'pagination_param', None):
-                        break
+                        article_links = self.extract_links(soup, current_url)
                         
-                    page_num += 1
+                        if not article_links:
+                            self.logger.info(f"No links found on {current_url}. Ending pagination.")
+                            break
+                            
+                        self.logger.info(f"Found {len(article_links)} links on {current_url}")
+                        
+                        links_processed_on_page = 0
+                        for link in article_links:
+                            if count >= limit:
+                                break
+                            if link in visited_urls:
+                                continue
+                                
+                            visited_urls.add(link)
+                            print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") 
+                            article_data = self.parse_article(link)
+                            if article_data:
+                                if self.save_article(article_data):
+                                    count += 1
+                                    links_processed_on_page += 1
+                                    if count % 10 == 0:
+                                        self.logger.info(f"Progress: {count}/{limit}")
+                                    
+                        if links_processed_on_page == 0 and page_num > 1:
+                             self.logger.info("No new links processed on this page. Stopping pagination.")
+                             break
+
+                        if not getattr(self, 'pagination_param', None):
+                            break
+                            
+                        page_num += 1
         finally:
             self._teardown_driver()
                         
@@ -149,6 +291,10 @@ class SeleniumCrawler(BaseCrawler):
             if not href:
                 continue
             
+            # Handle protocol-relative URLs (//example.com)
+            if href.startswith('//'):
+                href = 'https:' + href
+            
             full_url = urljoin(base_url, href)
             
             if self.base_url.replace('https://', '').replace('http://', '').split('/')[0] not in full_url:
@@ -159,7 +305,7 @@ class SeleniumCrawler(BaseCrawler):
                 continue
                 
             links.add(full_url)
-                
+            
         return list(links)
 
     def parse_article(self, url):
