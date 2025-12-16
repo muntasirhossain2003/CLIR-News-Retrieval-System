@@ -5,9 +5,6 @@ from glob import glob
 from tqdm import tqdm
 
 def generate_metadata():
-    # Resolve project root relative to this script
-    # Script is in src/module1_data_acquisition/generate_metadata.py
-    # Root is ../../
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
     

@@ -59,7 +59,7 @@ class BaseCrawler(ABC):
                 return BeautifulSoup(response.text, 'lxml')
             except Exception as e:
                 self.logger.error(f"Error fetching {url}: {e}. Retry {i+1}/{retries}")
-                time.sleep(2 * (i + 1)) # Exponential backoff
+                time.sleep(2 * (i + 1))
         return None
 
     def save_article(self, article_data):
@@ -71,9 +71,7 @@ class BaseCrawler(ABC):
             self.logger.warning("Attempted to save empty article or missing URL")
             return False
             
-        # Create a safe filename from the URL
         safe_filename = article_data['url'].split('/')[-1]
-        # Fallback if split gives empty (e.g. trailing slash)
         if not safe_filename or len(safe_filename) < 5:
              safe_filename = str(hash(article_data['url']))
         

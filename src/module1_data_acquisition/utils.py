@@ -4,7 +4,6 @@ import dateparser
 def clean_text(text):
     if not text:
         return ""
-    # Remove extra whitespace
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
@@ -17,4 +16,4 @@ def parse_date(date_string):
             return dt.strftime('%Y-%m-%d %H:%M:%S')
     except:
         pass
-    return date_string # Return original if parsing fails
+    return date_string 

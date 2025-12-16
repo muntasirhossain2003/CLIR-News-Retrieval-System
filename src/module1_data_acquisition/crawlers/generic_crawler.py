@@ -5,10 +5,11 @@ from urllib.parse import urljoin
 from ..utils import clean_text, parse_date
 
 class GenericNewsCrawler(BaseCrawler):
-    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=1.0):
+    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=1.0, pagination_param=None):
         super().__init__(base_url=base_url, language=language, source_name=source_name, delay=delay)
         self.selectors = selectors
         self.start_urls = start_urls if start_urls else [base_url]
+        self.pagination_param = pagination_param
         # selectors should be a dict:
         # {
         #   'article_links': 'css_selector_for_links',
@@ -25,28 +26,61 @@ class GenericNewsCrawler(BaseCrawler):
 
         start_urls = self.start_urls
         
+        start_urls = self.start_urls
+        
         for url in start_urls:
             if count >= limit:
                 break
                 
-            soup = self.fetch_page(url)
-            if not soup:
-                continue
-                
-            article_links = self.extract_links(soup, url)
-            self.logger.info(f"Found {len(article_links)} links on {url}")
+            # Pagination loop
+            page_num = 1
+            max_pages = 50 
             
-            for link in article_links:
+            while page_num <= max_pages:
                 if count >= limit:
                     break
-                if link in visited_urls:
+                    
+                current_url = url
+                if self.pagination_param and page_num > 1:
+                    sep = '&' if '?' in url else '?'
+                    current_url = f"{url}{sep}{self.pagination_param}={page_num}"
+                
+                self.logger.info(f"Fetching list page: {current_url}")
+                soup = self.fetch_page(current_url)
+                if not soup:
+                    if page_num > 2: # If page 2 fails, maybe site is down. If page 3 fails, maybe end of list.
+                        break 
                     continue
                     
-                visited_urls.add(link)
-                article_data = self.parse_article(link)
-                if article_data:
-                    if self.save_article(article_data):
-                        count += 1
+                article_links = self.extract_links(soup, current_url)
+                if not article_links:
+                    self.logger.info(f"No links found on {current_url}. Ending pagination for this category.")
+                    break
+                    
+                self.logger.info(f"Found {len(article_links)} links on {current_url}")
+                
+                links_processed_on_page = 0
+                for link in article_links:
+                    if count >= limit:
+                        break
+                    if link in visited_urls:
+                        continue
+                        
+                    visited_urls.add(link)
+                    article_data = self.parse_article(link)
+                    if article_data:
+                        if self.save_article(article_data):
+                            count += 1
+                            links_processed_on_page += 1
+                            
+                if links_processed_on_page == 0 and page_num > 1:
+                     self.logger.info("No new links processed on this page. Stopping pagination.")
+                     break
+                     
+                if not self.pagination_param:
+                    break # No pagination configured, stop after page 1
+                    
+                page_num += 1
                         
         self.logger.info(f"Finished crawling {self.source_name}. Total articles: {count}")
 
@@ -65,8 +99,6 @@ class GenericNewsCrawler(BaseCrawler):
             if self.base_url.replace('https://', '').replace('http://', '').split('/')[0] not in full_url:
                 continue
 
-            # Heuristic: Article URLs usually have decent length and often contain hyphens
-            # Skip short links (likely navigation) unless they are clearly strictly filtered by selector
             if selector == 'a' and len(full_url) < len(base_url) + 15:
                 continue
                 
@@ -100,7 +132,6 @@ class GenericNewsCrawler(BaseCrawler):
             body_text = " ".join([clean_text(tag.text) for tag in body_tags])
             data['body'] = body_text
         else:
-             # Fallback: try p tags if body selector failed
              p_tags = soup.find_all('p')
              body_text = " ".join([clean_text(p.text) for p in p_tags])
              data['body'] = body_text

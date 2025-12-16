@@ -11,10 +11,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from ..utils import clean_text, parse_date
 
 class SeleniumCrawler(BaseCrawler):
-    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=2.0):
+    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=2.0, pagination_param=None):
         super().__init__(base_url=base_url, language=language, source_name=source_name, delay=delay)
         self.selectors = selectors
         self.start_urls = start_urls if start_urls else [base_url]
+        self.pagination_param = pagination_param
         self.driver = None
         
     def _setup_driver(self):
@@ -58,11 +59,10 @@ class SeleniumCrawler(BaseCrawler):
         self._setup_driver()
         try:
             self.driver.get(url)
-            # Wait for body to be present, basic check
             WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
-            time.sleep(self.delay) # Extra wait for dynamic content
+            time.sleep(self.delay)
             
             return BeautifulSoup(self.driver.page_source, 'lxml')
         except Exception as e:
@@ -82,27 +82,59 @@ class SeleniumCrawler(BaseCrawler):
                 if count >= limit:
                     break
                     
-                soup = self.fetch_page_selenium(url)
-                if not soup:
-                    continue
-                    
-                article_links = self.extract_links(soup, url)
-                self.logger.info(f"Found {len(article_links)} links on {url}")
+                # Pagination loop
+                page_num = 1
+                max_pages = 50
                 
-                for link in article_links:
+                while page_num <= max_pages:
                     if count >= limit:
                         break
-                    if link in visited_urls:
+                        
+                    current_url = url
+                    if hasattr(self, 'pagination_param') and self.pagination_param and page_num > 1:
+                         sep = '&' if '?' in url else '?'
+                         current_url = f"{url}{sep}{self.pagination_param}={page_num}"
+                    
+                    self.logger.info(f"Processing list page: {current_url}")
+                    soup = self.fetch_page_selenium(current_url)
+                    if not soup:
+                        if page_num > 1: 
+                            break
                         continue
                         
-                    visited_urls.add(link)
-                    print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") # Feedback for user
-                    article_data = self.parse_article(link)
-                    if article_data:
-                        if self.save_article(article_data):
-                            count += 1
-                            if count % 10 == 0:
-                                self.logger.info(f"Progress: {count}/{limit}")
+                    article_links = self.extract_links(soup, current_url)
+                    
+                    if not article_links:
+                        self.logger.info(f"No links found on {current_url}. Ending pagination.")
+                        break
+                        
+                    self.logger.info(f"Found {len(article_links)} links on {current_url}")
+                    
+                    links_processed_on_page = 0
+                    for link in article_links:
+                        if count >= limit:
+                            break
+                        if link in visited_urls:
+                            continue
+                            
+                        visited_urls.add(link)
+                        print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") 
+                        article_data = self.parse_article(link)
+                        if article_data:
+                            if self.save_article(article_data):
+                                count += 1
+                                links_processed_on_page += 1
+                                if count % 10 == 0:
+                                    self.logger.info(f"Progress: {count}/{limit}")
+                                    
+                    if links_processed_on_page == 0 and page_num > 1:
+                         self.logger.info("No new links processed on this page. Stopping pagination.")
+                         break
+
+                    if not getattr(self, 'pagination_param', None):
+                        break
+                        
+                    page_num += 1
         finally:
             self._teardown_driver()
                         

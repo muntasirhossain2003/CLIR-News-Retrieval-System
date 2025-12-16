@@ -4,9 +4,18 @@ from .selenium_crawler import SeleniumCrawler
 def get_bangla_crawlers():
     crawlers = []
     
-    # 1. Prothom Alo
-    crawlers.append(GenericNewsCrawler(
+    # 1. Prothom Alo (Selenium required for dynamic categories)
+    crawlers.append(SeleniumCrawler(
         base_url="https://www.prothomalo.com/",
+        start_urls=[
+            "https://www.prothomalo.com/",
+            "https://www.prothomalo.com/collection/latest",
+            "https://www.prothomalo.com/bangladesh",
+            "https://www.prothomalo.com/politics",
+            "https://www.prothomalo.com/world",
+            "https://www.prothomalo.com/sports",
+            "https://www.prothomalo.com/business"
+        ],
         language="bangla",
         source_name="prothom_alo",
         selectors={
@@ -15,7 +24,8 @@ def get_bangla_crawlers():
             'body': 'div.story-element-text, div.story-content, article',
             'date': 'time',
             'date_attr': 'datetime'
-        }
+        },
+        pagination_param='page'
     ))
     
     # 2. BD News 24 (Selenium)
@@ -32,7 +42,7 @@ def get_bangla_crawlers():
         }
     ))
     
-    # 3. Ittefaq (Replacement for Kaler Kantho)
+    # 3. Ittefaq 
     crawlers.append(GenericNewsCrawler(
         base_url="https://www.ittefaq.com.bd/",
         language="bangla",
@@ -42,11 +52,12 @@ def get_bangla_crawlers():
             'title': 'h1',
             'body': 'div.detail-content, div.print-content, article', 
             'date': 'span.date'
-        }
+        },
+        pagination_param='page'
     ))
 
     # 4. Bangla Tribune
-    crawlers.append(GenericNewsCrawler(
+    crawlers.append(SeleniumCrawler(
         base_url="https://www.banglatribune.com/",
         start_urls=[
             "https://www.banglatribune.com/আজকের-খবর", 
@@ -64,7 +75,8 @@ def get_bangla_crawlers():
             'body': 'div.viewport.jw_article_body', 
             'date': 'span.time_rel',
             'date_attr': 'title'
-        }
+        },
+        pagination_param='page'
     ))
     
     # 5. Dhaka Post
@@ -77,7 +89,8 @@ def get_bangla_crawlers():
             'title': 'h1',
             'body': 'div.post-content, div.ab_content, article',
             'date': 'span.time'
-        }
+        },
+        pagination_param='page'
     ))
 
     # 6. Jugantor
