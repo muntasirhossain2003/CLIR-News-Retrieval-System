@@ -107,17 +107,32 @@ def get_bangla_crawlers():
         pagination_param='page'
     ))
 
-    # 6. Jugantor
-    crawlers.append(GenericNewsCrawler(
+    # 6. Jugantor (Selenium with AJAX load more button)
+    crawlers.append(SeleniumCrawler(
         base_url="https://www.jugantor.com/",
+        start_urls=[
+            "https://www.jugantor.com/latest",
+            "https://www.jugantor.com/national",
+            "https://www.jugantor.com/politics",
+            "https://www.jugantor.com/economics",
+            "https://www.jugantor.com/international",
+            "https://www.jugantor.com/country-news",
+            "https://www.jugantor.com/sports",
+            "https://www.jugantor.com/entertainment",
+            "https://www.jugantor.com/tech",
+            "https://www.jugantor.com/literature"
+        ],
         language="bangla",
         source_name="jugantor",
         selectors={
-            'article_links': 'a',
-            'title': 'h1',
-            'body': 'div.details-content, article',
-            'date': 'span.publish-time'
-        }
+            'article_links': 'a.linkOverlay, a[href*="/national/"], a[href*="/politics/"], a[href*="/economics/"], a[href*="/international/"], a[href*="/sports/"]',
+            'title': 'h1, h4.title10',
+            'body': 'div.details-content, article p, p.desktopSummary',
+            'date': 'span.publish-time, p.desktopTime'
+        },
+        load_more_selector='span.loadMoreButton, span.clickLoadMoreDesktop',
+        max_load_more_clicks=200,
+        delay=2.5
     ))
 
     # 7. Samakal
