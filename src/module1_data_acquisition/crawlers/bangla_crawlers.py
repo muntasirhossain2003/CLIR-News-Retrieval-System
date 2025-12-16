@@ -126,9 +126,9 @@ def get_bangla_crawlers():
         source_name="jugantor",
         selectors={
             'article_links': 'a.linkOverlay, a[href*="/national/"], a[href*="/politics/"], a[href*="/economics/"], a[href*="/international/"], a[href*="/sports/"]',
-            'title': 'h1, h4.title10',
-            'body': 'div.details-content, article p, p.desktopSummary',
-            'date': 'span.publish-time, p.desktopTime'
+            'title': 'h1',
+            'body': 'div.desktopDetailBody p',
+            'date': 'span.publish-time, p.desktopTime',
         },
         load_more_selector='span.loadMoreButton, span.clickLoadMoreDesktop',
         max_load_more_clicks=200,
