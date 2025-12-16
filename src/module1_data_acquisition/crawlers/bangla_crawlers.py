@@ -52,7 +52,9 @@ def get_bangla_crawlers():
             "https://www.banglatribune.com/আজকের-খবর", 
             "https://www.banglatribune.com/exclusive",
             "https://www.banglatribune.com/politics",
-            "https://www.banglatribune.com/tech-and-gadget"
+            "https://www.banglatribune.com/tech-and-gadget",
+            "https://www.banglatribune.com/country",
+            "https://www.banglatribune.com/business"
         ],
         language="bangla",
         source_name="bangla_tribune",
