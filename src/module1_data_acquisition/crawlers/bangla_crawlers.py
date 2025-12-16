@@ -48,18 +48,30 @@ def get_bangla_crawlers():
         }
     ))
     
-    # 3. Ittefaq 
-    crawlers.append(GenericNewsCrawler(
+    # 3. Ittefaq - Using SeleniumCrawler for AJAX pagination
+    crawlers.append(SeleniumCrawler(
         base_url="https://www.ittefaq.com.bd/",
         language="bangla",
         source_name="ittefaq",
+        start_urls=[
+            "https://www.ittefaq.com.bd/latest-news",
+            "https://www.ittefaq.com.bd/topic/বিশেষ-সংবাদ",
+            "https://www.ittefaq.com.bd/national",
+            "https://www.ittefaq.com.bd/country",
+            "https://www.ittefaq.com.bd/politics",
+            "https://www.ittefaq.com.bd/world-news",
+            "https://www.ittefaq.com.bd/sports",
+            "https://www.ittefaq.com.bd/entertainment",
+        ],
         selectors={
-            'article_links': 'a',
-            'title': 'h1',
-            'body': 'div.detail-content, div.print-content, article', 
-            'date': 'span.date'
+            'article_links': 'a.link_overlay, h2.title a',
+            'title': 'h1.title',  
+            'body': 'div.viewport p', 
+            'date': 'span.tts_time'  
         },
-        pagination_param='page'
+        load_more_selector='button#ajax_load_more_476_btn, button.ajax_load_btn',
+        max_load_more_clicks=100,
+        delay=2.0
     ))
 
     # 4. Bangla Tribune (with AJAX load more button)
