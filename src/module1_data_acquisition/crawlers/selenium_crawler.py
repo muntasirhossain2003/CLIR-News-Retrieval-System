@@ -11,9 +11,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from ..utils import clean_text, parse_date
 
 class SeleniumCrawler(BaseCrawler):
-    def __init__(self, base_url, language, source_name, selectors, delay=2.0):
+    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=2.0):
         super().__init__(base_url=base_url, language=language, source_name=source_name, delay=delay)
         self.selectors = selectors
+        self.start_urls = start_urls if start_urls else [base_url]
         self.driver = None
         
     def _setup_driver(self):
@@ -73,7 +74,7 @@ class SeleniumCrawler(BaseCrawler):
         count = 0
         visited_urls = set()
         
-        start_urls = [self.base_url]
+        start_urls = self.start_urls
         self._setup_driver()
         
         try:

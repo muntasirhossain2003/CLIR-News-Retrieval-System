@@ -48,6 +48,12 @@ def get_bangla_crawlers():
     # 4. Bangla Tribune
     crawlers.append(GenericNewsCrawler(
         base_url="https://www.banglatribune.com/",
+        start_urls=[
+            "https://www.banglatribune.com/আজকের-খবর", 
+            "https://www.banglatribune.com/exclusive",
+            "https://www.banglatribune.com/politics",
+            "https://www.banglatribune.com/tech-and-gadget"
+        ],
         language="bangla",
         source_name="bangla_tribune",
         selectors={

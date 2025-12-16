@@ -5,9 +5,10 @@ from urllib.parse import urljoin
 from ..utils import clean_text, parse_date
 
 class GenericNewsCrawler(BaseCrawler):
-    def __init__(self, base_url, language, source_name, selectors, delay=1.0):
+    def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=1.0):
         super().__init__(base_url=base_url, language=language, source_name=source_name, delay=delay)
         self.selectors = selectors
+        self.start_urls = start_urls if start_urls else [base_url]
         # selectors should be a dict:
         # {
         #   'article_links': 'css_selector_for_links',
@@ -22,9 +23,8 @@ class GenericNewsCrawler(BaseCrawler):
         count = 0
         visited_urls = set()
 
-        start_urls = [self.base_url]
+        start_urls = self.start_urls
         
-
         for url in start_urls:
             if count >= limit:
                 break
