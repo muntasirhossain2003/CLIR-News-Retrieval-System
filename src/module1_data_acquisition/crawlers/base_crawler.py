@@ -3,6 +3,7 @@ import time
 import json
 import os
 import requests
+import hashlib
 from abc import ABC, abstractmethod
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -70,15 +71,20 @@ class BaseCrawler(ABC):
         if not article_data or 'url' not in article_data:
             self.logger.warning("Attempted to save empty article or missing URL")
             return False
-            
-        safe_filename = article_data['url'].split('/')[-1]
-        if not safe_filename or len(safe_filename) < 5:
-             safe_filename = str(hash(article_data['url']))
         
-        # Sanitize filename
-        safe_filename = "".join([c for c in safe_filename if c.isalnum() or c in ('-','_')]).strip()
-        if not safe_filename:
-             safe_filename = str(int(time.time()))
+        # Use MD5 hash of URL for consistent, short filenames
+        url_hash = hashlib.md5(article_data['url'].encode('utf-8')).hexdigest()
+        safe_filename = f"{url_hash[:16]}"  # Use first 16 chars of hash
+        
+        # Optionally try to extract article ID from URL
+        try:
+            url_parts = article_data['url'].split('/')
+            for part in reversed(url_parts):
+                if part.isdigit() and len(part) >= 4:
+                    safe_filename = f"{part}_{url_hash[:8]}"
+                    break
+        except:
+            pass
              
         filepath = os.path.join(self.data_dir, f"{safe_filename}.json")
         
