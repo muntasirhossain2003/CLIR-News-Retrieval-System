@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description="CLIR Assignment Crawler")
     parser.add_argument('--lang', choices=['bangla', 'english', 'all'], default='all', help='Language to crawl')
     parser.add_argument('--limit', type=int, default=50, help='Number of articles to crawl per site')
-    parser.add_argument('--source', help='Specific source to crawl (e.g. prothom_alo)')
+    parser.add_argument('--source', help='Specific source to crawl')
     
     args = parser.parse_args()
     
