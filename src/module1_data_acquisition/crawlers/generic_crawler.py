@@ -24,11 +24,7 @@ class GenericNewsCrawler(BaseCrawler):
         count = 0
         visited_urls = set()
 
-        start_urls = self.start_urls
-        
-        start_urls = self.start_urls
-        
-        for url in start_urls:
+        for url in self.start_urls:
             if count >= limit:
                 break
                 
@@ -48,13 +44,15 @@ class GenericNewsCrawler(BaseCrawler):
                 self.logger.info(f"Fetching list page: {current_url}")
                 soup = self.fetch_page(current_url)
                 if not soup:
-                    if page_num > 2: # If page 2 fails, maybe site is down. If page 3 fails, maybe end of list.
-                        break 
+                    if page_num > 1: 
+                        break
+                    page_num += 1
                     continue
-                    
+                
                 article_links = self.extract_links(soup, current_url)
+                
                 if not article_links:
-                    self.logger.info(f"No links found on {current_url}. Ending pagination for this category.")
+                    self.logger.info(f"No links found on {current_url}. Ending pagination.")
                     break
                     
                 self.logger.info(f"Found {len(article_links)} links on {current_url}")
@@ -67,18 +65,21 @@ class GenericNewsCrawler(BaseCrawler):
                         continue
                         
                     visited_urls.add(link)
+                    print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") 
                     article_data = self.parse_article(link)
                     if article_data:
                         if self.save_article(article_data):
                             count += 1
                             links_processed_on_page += 1
+                            if count % 10 == 0:
+                                self.logger.info(f"Progress: {count}/{limit}")
                             
                 if links_processed_on_page == 0 and page_num > 1:
                      self.logger.info("No new links processed on this page. Stopping pagination.")
                      break
-                     
+
                 if not self.pagination_param:
-                    break # No pagination configured, stop after page 1
+                    break
                     
                 page_num += 1
                         
@@ -93,17 +94,21 @@ class GenericNewsCrawler(BaseCrawler):
             if not href:
                 continue
             
+            # Handle protocol-relative URLs (//example.com)
+            if href.startswith('//'):
+                href = 'https:' + href
+            
             full_url = urljoin(base_url, href)
             
-            # Domain check
             if self.base_url.replace('https://', '').replace('http://', '').split('/')[0] not in full_url:
                 continue
 
+            # Heuristic for generic 'a' selector
             if selector == 'a' and len(full_url) < len(base_url) + 15:
                 continue
                 
             links.add(full_url)
-                
+            
         return list(links)
 
     def parse_article(self, url):
@@ -118,12 +123,13 @@ class GenericNewsCrawler(BaseCrawler):
         }
         
         # Title
-        title_tag = soup.select_one(self.selectors.get('title', 'h1'))
+        title_selector = self.selectors.get('title', 'h1')
+        title_tag = soup.select_one(title_selector)
         if title_tag:
             data['title'] = clean_text(title_tag.text)
         else:
             self.logger.warning(f"No title found for {url}")
-            return None 
+            return None
 
         # Body
         body_selector = self.selectors.get('body', 'article')
@@ -136,8 +142,8 @@ class GenericNewsCrawler(BaseCrawler):
              body_text = " ".join([clean_text(p.text) for p in p_tags])
              data['body'] = body_text
 
-        if not data.get('body'):
-            self.logger.warning(f"No body found for {url}")
+        if not data.get('body') or len(data['body']) < 100: # Ensure valid body
+            self.logger.warning(f"No valid body found for {url}")
             return None
 
         # Date
