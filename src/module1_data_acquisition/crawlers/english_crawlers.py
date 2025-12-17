@@ -8,14 +8,18 @@ def get_english_crawlers():
     crawlers.append(SeleniumCrawler(
         base_url="https://www.thedailystar.net/",
         start_urls=[
+            "https://www.thedailystar.net/news",
             "https://www.thedailystar.net/news/bangladesh",
+            "https://www.thedailystar.net/news/investigative-stories",
+            "https://www.thedailystar.net/tech-startup",
             "https://www.thedailystar.net/news/world",
             "https://www.thedailystar.net/news/asia",
             "https://www.thedailystar.net/sports",
             "https://www.thedailystar.net/business",
             "https://www.thedailystar.net/opinion",
             "https://www.thedailystar.net/lifestyle",
-            "https://www.thedailystar.net/entertainment"
+            "https://www.thedailystar.net/entertainment",
+            "https://www.thedailystar.net/country-news"
         ],
         language="english",
         source_name="daily_star",
@@ -67,17 +71,29 @@ def get_english_crawlers():
         }
     ))
 
-    # 4. Daily Sun
+    # 4. Prothom Alo English
     crawlers.append(SeleniumCrawler(
-        base_url="https://www.daily-sun.com/",
+        base_url="https://en.prothomalo.com/",
         language="english",
-        source_name="daily_sun",
+        source_name="prothom_alo",
+        start_urls=[
+            "https://en.prothomalo.com/bangladesh",
+            "https://en.prothomalo.com/international",
+            "https://en.prothomalo.com/sports",
+            "https://en.prothomalo.com/opinion",
+            "https://en.prothomalo.com/business",
+            "https://en.prothomalo.com/youth",
+            "https://en.prothomalo.com/entertainment",
+            "https://en.prothomalo.com/lifestyle"
+        ],
         selectors={
-            'article_links': 'a',
+            'article_links': 'a[href*="/bangladesh/"], a[href*="/international/"], a[href*="/sports/"], a[href*="/opinion/"], a[href*="/business/"], a[href*="/youth/"], a[href*="/entertainment/"], a[href*="/lifestyle/"]',
             'title': 'h1',
-            'body': 'div.news-content, div.content',
-            'date': 'div.news-time'
-        }
+            'body': 'p',
+            'date': 'time'
+        },
+        load_more_selector='__infinite_scroll__',
+        delay=3.0
     ))
     
     # 5. Dhaka Tribune
