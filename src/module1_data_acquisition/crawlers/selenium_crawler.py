@@ -1,14 +1,15 @@
+"""
+Simplified Selenium Crawler - Main orchestration class.
+Driver management and button strategies extracted to separate files.
+"""
 from .base_crawler import BaseCrawler
-import logging
+from .selenium_driver import SeleniumDriverManager
+from .selenium_buttons import ButtonClickStrategy
 import time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from ..utils import clean_text, parse_date
+
 
 class SeleniumCrawler(BaseCrawler):
     def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=2.0, pagination_param=None, load_more_selector=None, max_load_more_clicks=50):
@@ -18,58 +19,24 @@ class SeleniumCrawler(BaseCrawler):
         self.pagination_param = pagination_param
         self.load_more_selector = load_more_selector
         self.max_load_more_clicks = max_load_more_clicks
-        self.driver = None
+        
+        # Use driver manager instead of direct driver
+        self.driver_manager = SeleniumDriverManager(headless=True)
+        self.button_strategy = None  # Will be initialized when driver is ready
         
     def _setup_driver(self):
-        if self.driver:
-            return
-            
-        chrome_options = Options()
-        chrome_options.add_argument("--headless") 
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-        
-        # Suppress logging
-        chrome_options.add_argument("--log-level=3")
-        
-        # Anti-detection measures
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
-        
-        self.driver = webdriver.Chrome(options=chrome_options)
-        
-        # Execute CDP commands to prevent detection
-        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": """
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
-                })
-            """
-        })
-        self.logger.info("Selenium driver initialized")
+        """Initialize driver and button strategy."""
+        self.driver_manager.setup()
+        if not self.button_strategy:
+            self.button_strategy = ButtonClickStrategy(self.driver_manager.driver)
 
     def _teardown_driver(self):
-        if self.driver:
-            self.driver.quit()
-            self.driver = None
-            self.logger.info("Selenium driver closed")
+        """Cleanup driver."""
+        self.driver_manager.teardown()
 
     def fetch_page_selenium(self, url):
-        self._setup_driver()
-        try:
-            self.driver.get(url)
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-            time.sleep(self.delay)
-            
-            return BeautifulSoup(self.driver.page_source, 'lxml')
-        except Exception as e:
-            self.logger.error(f"Selenium error fetching {url}: {e}")
-            return None
+        """Fetch page using Selenium."""
+        return self.driver_manager.get_page(url, delay=self.delay)
 
     def crawl(self, limit=100):
         self.logger.info(f"Starting crawl for {self.source_name} with Selenium...")
@@ -87,141 +54,59 @@ class SeleniumCrawler(BaseCrawler):
                 self.logger.info(f"Processing list page: {url}")
                 
                 if self.load_more_selector:
-                    self.driver.get(url)
+                    self.driver_manager.driver.get(url)
+                    time.sleep(self.delay)
                     
-                    # Wait for initial articles to load
-                    try:
-                        WebDriverWait(self.driver, 10).until(
-                            EC.presence_of_element_located((By.TAG_NAME, "body"))
-                        )
-                        time.sleep(self.delay)
-                    except Exception as e:
-                        self.logger.error(f"Failed to load {url}: {e}")
-                        continue
-                    
-                    # Keep clicking "আরও" (More) button until we have enough articles
+                    # Main pagination loop
                     clicks_without_progress = 0
-                    max_clicks_without_progress = 3
+                    last_link_count = 0
                     
                     while count < limit:
-                        # Get current articles
-                        soup = BeautifulSoup(self.driver.page_source, 'lxml')
+                        # Handle pagination BEFORE extracting links (for infinite scroll)
+                        if self.load_more_selector == '__infinite_scroll__':
+                            # On first iteration, don't scroll yet - get initial links
+                            if last_link_count > 0:
+                                self.logger.info(f"Attempting infinite scroll on {url}")
+                                scroll_result = self.button_strategy.handle_infinite_scroll()
+                                self.logger.info(f"Infinite scroll result: {scroll_result}")
+                                if not scroll_result:
+                                    self.logger.info("No more content to scroll, moving to next start URL")
+                                    break
+                        
+                        # Get current page articles
+                        soup = self.driver_manager.get_current_soup()
                         article_links = self.extract_links(soup, url)
                         
                         if not article_links:
-                            self.logger.info("No more articles found.")
                             break
                         
-                        # Count how many are NEW (not visited)
+                        # Find new links
                         new_links = [link for link in article_links if link not in visited_urls]
                         self.logger.info(f"Found {len(article_links)} total links on page, {len(new_links)} are new")
                         
-                        # If no new links after clicking button, we might be done
+                        # Check progress
                         if not new_links:
                             clicks_without_progress += 1
-                            if clicks_without_progress >= max_clicks_without_progress:
-                                self.logger.info(f"No new articles after {clicks_without_progress} button clicks, ending pagination")
+                            if clicks_without_progress >= 10:
+                                self.logger.info("No new articles after 10 button clicks, ending pagination")
                                 break
                         else:
-                            clicks_without_progress = 0  # Reset counter when we find new articles
+                            clicks_without_progress = 0
                         
-                        # Process each NEW article
-                        articles_saved_this_round = 0
-                        for link in new_links:
-                            if count >= limit:
-                                break
-                                
-                            visited_urls.add(link)
-                            print(f"[{self.source_name}] Fetching ({count+1}/{limit}): {link}") 
-                            article_data = self.parse_article(link)
-                            if article_data:
-                                if self.save_article(article_data):
-                                    count += 1
-                                    articles_saved_this_round += 1
-                                    if count % 10 == 0:
-                                        self.logger.info(f"Progress: {count}/{limit}")
+                        # Process articles
+                        articles_saved = self._process_article_links(new_links, count, limit, visited_urls)
+                        count += articles_saved
+                        self.logger.info(f"Saved {articles_saved} articles this round")
                         
-                        self.logger.info(f"Saved {articles_saved_this_round} articles this round")
+                        last_link_count = len(article_links)
                         
-                        # If we've reached limit, break
                         if count >= limit:
                             break
                         
-                        # Try to click "আরও" (More) button to load more articles
-                        try:
-                            # Scroll to bottom to trigger lazy loading
-                            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                            time.sleep(1.5)
-                            
-                            # Try multiple methods to find the "আরও" button
-                            more_button = None
-                            
-                            # Method 1: Try CSS selector if provided
-                            try:
-                                more_button = WebDriverWait(self.driver, 5).until(
-                                    EC.presence_of_element_located((By.CSS_SELECTOR, self.load_more_selector))
-                                )
-                                self.logger.info(f"Found button with selector: {self.load_more_selector}")
-                            except Exception as e:
-                                self.logger.debug(f"CSS selector failed: {str(e)[:50]}")
-                            
-                            # Method 2: Find by text content "আরও"
-                            if not more_button:
-                                try:
-                                    more_button = self.driver.find_element(By.XPATH, "//button[contains(., 'আরও')] | //a[contains(., 'আরও')] | //*[contains(@class, 'load') and contains(., 'আরও')]")
-                                    self.logger.info("Found button by text 'আরও'")
-                                except Exception as e:
-                                    self.logger.debug(f"XPath text search failed: {str(e)[:50]}")
-                            
-                            # Method 3: Find by ID pattern
-                            if not more_button:
-                                try:
-                                    more_button = self.driver.find_element(By.CSS_SELECTOR, "button[id*='ajax_load_more'], a[id*='ajax_load_more'], button[id*='load_more'], a[id*='load_more']")
-                                    self.logger.info("Found button by ID pattern")
-                                except Exception as e:
-                                    self.logger.debug(f"ID pattern search failed: {str(e)[:50]}")
-                            
-                            # Method 4: Find by class pattern
-                            if not more_button:
-                                try:
-                                    more_button = self.driver.find_element(By.CSS_SELECTOR, "button[class*='load-more'], a[class*='load-more'], button[class*='more'], a[class*='more']")
-                                    self.logger.info("Found button by class pattern")
-                                except Exception as e:
-                                    self.logger.debug(f"Class pattern search failed: {str(e)[:50]}")
-                            
-                            if not more_button:
-                                self.logger.info("আরও button not found after trying all methods, ending pagination for this page")
+                        # For button-based pagination
+                        if self.load_more_selector and self.load_more_selector != '__infinite_scroll__':
+                            if not self._click_load_more_button():
                                 break
-                            
-                            # Scroll to button and wait (even if not visible, try to make it visible)
-                            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", more_button)
-                            time.sleep(1.0)
-                            
-                            # Try clicking - use JavaScript which works even on hidden elements
-                            try:
-                                # First try regular click if visible
-                                if more_button.is_displayed():
-                                    try:
-                                        more_button.click()
-                                        self.logger.info("Clicked 'আরও' button with regular click")
-                                    except Exception as click_error:
-                                        self.logger.debug(f"Regular click failed: {str(click_error)[:50]}, trying JS click")
-                                        self.driver.execute_script("arguments[0].click();", more_button)
-                                        self.logger.info("Clicked 'আরও' button with JavaScript")
-                                else:
-                                    # If not visible, use JavaScript directly
-                                    self.driver.execute_script("arguments[0].click();", more_button)
-                                    self.logger.info("Clicked hidden 'আরও' button with JavaScript")
-                                
-                                time.sleep(3)  # Wait for new articles to load
-                            except Exception as click_exc:
-                                self.logger.info(f"Failed to click আরও button: {str(click_exc)[:150]}")
-                                break
-                        except Exception as e:
-                            self.logger.info(f"Exception while trying to click আরও button: {str(e)[:150]}")
-                            break
-                            self.logger.info(f"No more 'আরও' button or not clickable: {str(e)[:100]}")
-                            break
                 else:
                     # Original pagination logic for non-AJAX sites
                     page_num = 1
@@ -282,6 +167,44 @@ class SeleniumCrawler(BaseCrawler):
                         
         self.logger.info(f"Finished crawling {self.source_name}. Total articles: {count}")
 
+    def _process_article_links(self, links, current_count, limit, visited_urls):
+        """Process a batch of article links and return count of saved articles."""
+        saved = 0
+        for link in links:
+            if current_count + saved >= limit:
+                break
+            
+            visited_urls.add(link)
+            print(f"[{self.source_name}] Fetching ({current_count + saved + 1}/{limit}): {link}")
+            article_data = self.parse_article(link)
+            if article_data and self.save_article(article_data):
+                saved += 1
+                if (current_count + saved) % 10 == 0:
+                    self.logger.info(f"Progress: {current_count + saved}/{limit}")
+        return saved
+    
+    def _click_load_more_button(self):
+        """Try to find and click the load more button. Returns True if successful."""
+        try:
+            self.driver_manager.scroll_to_bottom()
+            time.sleep(1.5)
+            
+            # Find button using strategy
+            button = self.button_strategy.find_button(self.load_more_selector)
+            if not button:
+                self.logger.info("Load more button not found, ending pagination")
+                return False
+            
+            # Click button using strategy
+            if self.button_strategy.click_button(button):
+                time.sleep(3)
+                return True
+            else:
+                return False
+        except Exception as e:
+            self.logger.info(f"Exception while clicking button: {str(e)[:150]}")
+            return False
+    
     def extract_links(self, soup, base_url):
         links = set()
         selector = self.selectors.get('article_links', 'a')
@@ -332,12 +255,61 @@ class SeleniumCrawler(BaseCrawler):
         body_selector = self.selectors.get('body', 'article')
         body_tags = soup.select(body_selector)
         if body_tags:
-            body_text = " ".join([clean_text(tag.text) for tag in body_tags])
-            data['body'] = body_text
+            body_paragraphs = []
+            for tag in body_tags:
+                text = clean_text(tag.text)
+                
+                # For Daily Star, stop if we encounter Bangla text (indicates related news section)
+                if self.source_name == 'daily_star':
+                    # Check if text contains Bangla Unicode characters (U+0980 to U+09FF)
+                    has_bangla = any('\u0980' <= char <= '\u09FF' for char in text)
+                    if has_bangla:
+                        break  # Stop collecting paragraphs when we hit Bangla content
+                
+                # For New Age, skip paragraphs with footer content
+                if self.source_name == 'new_age':
+                    footer_markers = ['Editor:', 'PABX:', 'Fax:', 'adnewage@gmail.com', 
+                                     'For Advertisement', 'Cell: +880', 'Copyright', 'Nurul Kabir']
+                    if any(marker in text for marker in footer_markers):
+                        continue  # Skip this paragraph if it contains footer content
+                
+                # Filter out unwanted content
+                if (len(text) > 50 and 
+                    'বিজ্ঞাপন' not in text and 
+                    'আরও পড়ুন' not in text and
+                    'Site use implies' not in text and
+                    'Privacy Policy' not in text and
+                    'PRIVACY POLICY' not in text and
+                    'TERMS OF USE' not in text and
+                    'SAMAKAL ALL RIGHTS RESERVED' not in text and
+                    'ফোন :' not in text and
+                    'বিজ্ঞাপন :' not in text and
+                    'ই-মেইল:' not in text and
+                    'samakalad@gmail.com' not in text and
+                    'marketingonline@samakal.com' not in text and
+                    'উন্নয়নে ইমিথমেকারস.কম' not in text):
+                    body_paragraphs.append(text)
+            data['body'] = " ".join(body_paragraphs)
         else:
              p_tags = soup.find_all('p')
-             body_text = " ".join([clean_text(p.text) for p in p_tags])
-             data['body'] = body_text
+             body_paragraphs = []
+             for p in p_tags:
+                 text = clean_text(p.text)
+                 
+                 # For New Age, skip paragraphs with footer content (fallback path)
+                 if self.source_name == 'new_age':
+                     footer_markers = ['Editor:', 'PABX:', 'Fax:', 'adnewage@gmail.com', 
+                                      'For Advertisement', 'Cell: +880', 'Copyright', 'Nurul Kabir']
+                     if any(marker in text for marker in footer_markers):
+                         continue  # Skip this paragraph if it contains footer content
+                 
+                 if (len(text) > 50 and 
+                     'বিজ্ঞাপন' not in text and 
+                     'আরও পড়ুন' not in text and
+                     'Site use implies' not in text and
+                     'Privacy Policy' not in text):
+                     body_paragraphs.append(text)
+             data['body'] = " ".join(body_paragraphs)
 
         if not data.get('body') or len(data['body']) < 100: # Ensure valid body
             self.logger.warning(f"No valid body found for {url}")
