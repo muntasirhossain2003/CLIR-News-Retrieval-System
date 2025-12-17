@@ -99,6 +99,17 @@ def get_english_crawlers():
     # 5. Dhaka Tribune
     crawlers.append(SeleniumCrawler(
         base_url="https://www.dhakatribune.com/",
+        start_urls=[
+            "https://www.dhakatribune.com/bangladesh",
+            "https://www.dhakatribune.com/bangladesh/dhaka",
+            "https://www.dhakatribune.com/bangladesh/education",
+            "https://www.dhakatribune.com/bangladesh/foreign-affairs",
+            "https://www.dhakatribune.com/world",
+            "https://www.dhakatribune.com/bangladesh/health",
+            "https://www.dhakatribune.com/bangladesh/technology",
+            "https://www.dhakatribune.com/bangladesh/entertainment",
+            "https://www.dhakatribune.com/bangladesh/sports",
+        ],
         language="english",
         source_name="dhaka_tribune",
         selectors={
@@ -107,7 +118,11 @@ def get_english_crawlers():
             'body': 'div.content_body, div.story-element-text',
             'date': 'span.time',
             'date_attr': 'title'
-        }
+        },
+        #it has "+more" button to get extra news
+        load_more_selector='button.ajax_load_btn',
+        max_load_more_clicks=100,
+        delay=3.0
     ))
 
     # 6. Financial Express - Infinite Scroll  
@@ -130,7 +145,7 @@ def get_english_crawlers():
             'body': 'article > p:not([class*="share"]):not([class*="publish"]):not([class*="meta"]), div.article-content > p',
             'date': 'time, span.date'
         },
-        load_more_selector='__infinite_scroll__',  # Special marker 
+        load_more_selector='__infinite_scroll__', 
         max_load_more_clicks=50,
         delay=3.0
     ))
