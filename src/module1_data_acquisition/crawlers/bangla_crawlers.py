@@ -1,4 +1,3 @@
-from .generic_crawler import GenericNewsCrawler
 from .selenium_crawler import SeleniumCrawler
 
 def get_bangla_crawlers():
@@ -30,25 +29,11 @@ def get_bangla_crawlers():
             'date_attr': 'datetime'
         },
         load_more_selector='span.load-more-content, div.more, div._7ZpjE',
-        max_load_more_clicks=150,
+        max_load_more_clicks=300,
         delay=2.5
     ))
     
-    # 2. BD News 24 (Selenium)
-    crawlers.append(SeleniumCrawler(
-        base_url="https://bangla.bdnews24.com/",
-        language="bangla",
-        source_name="bdnews24",
-        selectors={
-            'article_links': 'div#app a, a', 
-            'title': 'h1.Title, h1',
-            'body': 'div.article_body, div.custombody, article, div#root',
-            'date': 'span.timeago',
-            'date_attr': 'title'
-        }
-    ))
-    
-    # 3. Ittefaq - Using SeleniumCrawler for AJAX pagination
+    # 2. Ittefaq - Using SeleniumCrawler for AJAX pagination
     crawlers.append(SeleniumCrawler(
         base_url="https://www.ittefaq.com.bd/",
         language="bangla",
@@ -62,6 +47,7 @@ def get_bangla_crawlers():
             "https://www.ittefaq.com.bd/world-news",
             "https://www.ittefaq.com.bd/sports",
             "https://www.ittefaq.com.bd/entertainment",
+            "https://www.ittefaq.com.bd/news"
         ],
         selectors={
             'article_links': 'a.link_overlay, h2.title a',
@@ -70,7 +56,7 @@ def get_bangla_crawlers():
             'date': 'span.tts_time'  
         },
         load_more_selector='button#ajax_load_more_476_btn, button.ajax_load_btn',
-        max_load_more_clicks=100,
+        max_load_more_clicks=200,
         delay=2.0
     ))
 
@@ -101,22 +87,42 @@ def get_bangla_crawlers():
             'date_attr': 'data-published'
         },
         load_more_selector='button[id^="ajax_load_more_"]',
-        max_load_more_clicks=100,
+        max_load_more_clicks=200,
         delay=1.5
     ))
     
-    # 5. Dhaka Post
-    crawlers.append(GenericNewsCrawler(
+    # 5. Dhaka Post - Requires Selenium for AJAX pagination
+    # 5. Dhaka Post - Uses infinite scroll
+    crawlers.append(SeleniumCrawler(
         base_url="https://www.dhakapost.com/",
+        start_urls=[
+            "https://www.dhakapost.com/latest-news",
+            "https://www.dhakapost.com/national",
+            "https://www.dhakapost.com/politics",
+            "https://www.dhakapost.com/economy",
+            "https://www.dhakapost.com/international",
+            "https://www.dhakapost.com/country",
+            "https://www.dhakapost.com/sports",
+            "https://www.dhakapost.com/campus",
+            "https://www.dhakapost.com/education",
+            "https://www.dhakapost.com/entertainment",
+            "https://www.dhakapost.com/tech",
+            "https://www.dhakapost.com/religion",
+            "https://www.dhakapost.com/opinion",
+            "https://www.dhakapost.com/life-style",
+            "https://www.dhakapost.com/crime"
+        ],
         language="bangla",
         source_name="dhaka_post",
         selectors={
-            'article_links': 'a',
-            'title': 'h1',
-            'body': 'div.post-content, div.ab_content, article',
-            'date': 'span.time'
+            'article_links': 'a[href*="/national/"], a[href*="/politics/"], a[href*="/economy/"], a[href*="/international/"], a[href*="/country/"], a[href*="/sports/"], a[href*="/campus/"], a[href*="/education/"], a[href*="/entertainment/"], a[href*="/tech/"], a[href*="/opinion/"], a[href*="/life-style/"], a[href*="/crime/"]',
+            'title': 'article h1',
+            'body': 'article > div:nth-child(3) p',
+            'date': 'article time'
         },
-        pagination_param='page'
+        load_more_selector='__infinite_scroll__',  # Uses infinite scroll
+        max_load_more_clicks=500,
+        delay=2.5
     ))
 
     # 6. Jugantor (Selenium with AJAX load more button)
@@ -143,21 +149,41 @@ def get_bangla_crawlers():
             'date': 'span.publish-time, p.desktopTime',
         },
         load_more_selector='span.loadMoreButton, span.clickLoadMoreDesktop',
-        max_load_more_clicks=200,
+        max_load_more_clicks=300,
         delay=2.5
     ))
 
-    # 7. Samakal
     crawlers.append(SeleniumCrawler(
-        base_url="https://samakal.com/latest/news",
+        base_url="https://samakal.com/",
+        start_urls=[
+            "https://samakal.com/latest/news",
+            "https://samakal.com/bangladesh",
+            "https://samakal.com/politics",
+            "https://samakal.com/economics",
+            "https://samakal.com/international",
+            "https://samakal.com/sports",
+            "https://samakal.com/entertainment",
+            "https://samakal.com/crime",
+            "https://samakal.com/opinion",
+            "https://samakal.com/capital",
+            "https://samakal.com/lifestyle",
+            "https://samakal.com/whole-country",
+            "https://samakal.com/literature",
+            "https://samakal.com/health",
+            "https://samakal.com/education"
+        ],
         language="bangla",
         source_name="samakal",
         selectors={
             'article_links': 'a[href*="/article/"]',
-            'title': 'h1',
-            'body': 'div.article-details, div.content',
-            'date': 'div.article-time'
-        }
+            'title': 'main h1',
+            'body': 'main > div > div:nth-child(2) > div:nth-child(1) > div:nth-child(4) p',
+            'date': 'main > div > div:nth-child(2) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) p:nth-child(2)',
+            'date_attr': None
+        },
+        load_more_selector='__infinite_scroll__',  # Uses infinite scroll
+        max_load_more_clicks=500,
+        delay=3.0
     ))
     
     return crawlers
