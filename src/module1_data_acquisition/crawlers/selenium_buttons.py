@@ -103,17 +103,16 @@ class ButtonClickStrategy:
             self.logger.error(f"Failed to click button: {e}")
             return False
     
-    def handle_infinite_scroll(self, wait_time=20):
-        """Handle infinite scroll loading."""
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
+    def handle_infinite_scroll(self, wait_time=5.0):
+        """Handle infinite scroll loading by scrolling multiple times and waiting for content."""
+        # Scroll down slowly in smaller increments to better trigger AJAX loading
+        for i in range(10):  # More incremental scrolls
+            # Scroll by smaller amounts to better trigger lazy loading
+            self.driver.execute_script("window.scrollBy(0, 500);")
+            time.sleep(0.5)  # Half-second wait between increments
+        
+        # Final scroll to absolute bottom
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(wait_time)
+        time.sleep(wait_time * 2)  # Wait longer for content to load (10 seconds with default 5s)
         
-        new_height = self.driver.execute_script("return document.body.scrollHeight")
-        
-        if new_height == last_height:
-            self.logger.info("No more content loading with infinite scroll")
-            return False
-        else:
-            self.logger.info("Infinite scroll loaded more content")
-            return True
+        return True  # Always return True to let article detection determine if new content loaded

@@ -60,18 +60,17 @@ class SeleniumCrawler(BaseCrawler):
                     # Main pagination loop
                     clicks_without_progress = 0
                     last_link_count = 0
+                    scroll_attempts = 0
+                    max_scroll_attempts = 100  # Limit scrolls per category
                     
-                    while count < limit:
+                    while count < limit and scroll_attempts < max_scroll_attempts:
                         # Handle pagination BEFORE extracting links (for infinite scroll)
                         if self.load_more_selector == '__infinite_scroll__':
                             # On first iteration, don't scroll yet - get initial links
                             if last_link_count > 0:
-                                self.logger.info(f"Attempting infinite scroll on {url}")
-                                scroll_result = self.button_strategy.handle_infinite_scroll()
-                                self.logger.info(f"Infinite scroll result: {scroll_result}")
-                                if not scroll_result:
-                                    self.logger.info("No more content to scroll, moving to next start URL")
-                                    break
+                                self.logger.info(f"Attempting infinite scroll on {url} (attempt {scroll_attempts + 1})")
+                                self.button_strategy.handle_infinite_scroll(wait_time=3.0)  # Increased from self.delay to 3.0 seconds
+                                scroll_attempts += 1
                         
                         # Get current page articles
                         soup = self.driver_manager.get_current_soup()
@@ -87,8 +86,8 @@ class SeleniumCrawler(BaseCrawler):
                         # Check progress
                         if not new_links:
                             clicks_without_progress += 1
-                            if clicks_without_progress >= 10:
-                                self.logger.info("No new articles after 10 button clicks, ending pagination")
+                            if clicks_without_progress >= 3:  # Reduced from 10 to 3 for faster detection
+                                self.logger.info("No new articles after 3 scroll attempts, moving to next start URL")
                                 break
                         else:
                             clicks_without_progress = 0
