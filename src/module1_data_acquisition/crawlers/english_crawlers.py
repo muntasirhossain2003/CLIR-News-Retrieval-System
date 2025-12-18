@@ -149,5 +149,57 @@ def get_english_crawlers():
         max_load_more_clicks=50,
         delay=3.0
     ))
+
+    # 7. United News of Bangladesh (UNB) - Infinite Scroll
+    crawlers.append(SeleniumCrawler(
+        base_url="https://unb.com.bd/",
+        language="english",
+        source_name="unb",
+        start_urls=[
+            "https://unb.com.bd/category/14/Bangladesh",
+            "https://unb.com.bd/category/15/Politics",
+            "https://unb.com.bd/category/16/Business",
+            "https://unb.com.bd/category/17/Sports",
+            "https://unb.com.bd/category/18/World",
+            "https://unb.com.bd/category/19/Tech",
+            "https://unb.com.bd/category/20/Entertainment",
+            "https://unb.com.bd/category/21/Lifestyle",
+            "https://unb.com.bd/category/22/Opinion",
+            "https://unb.com.bd/category/25/Environment",
+        ],
+        selectors={
+            'article_links': 'h3 a, article a, .news-item a',
+            'title': 'div.upper-box h1, div.inner-box h1, main h1',
+            'body': 'article p, .content-details p, main p',
+            'date': 'time, span.date, div.date, .date'
+        },
+        load_more_selector='__infinite_scroll__',
+        delay=1.5
+    ))
     
+    # 8. NTV BD
+    crawlers.append(SeleniumCrawler(
+        base_url="https://en.ntvbd.com/",
+        language="english",
+        source_name="ntv_bd",
+        start_urls=[
+            "https://en.ntvbd.com/bangladesh",
+            "https://en.ntvbd.com/world",
+            "https://en.ntvbd.com/sports",
+            "https://en.ntvbd.com/entertainment",
+            "https://en.ntvbd.com/business",
+            "https://en.ntvbd.com/education",
+            "https://en.ntvbd.com/sci-tech"
+        ],
+        selectors={
+            'article_links': 'h3 a, h2 a, h4 a, div.card-title a, div.views-row a', 
+            'title': 'article.node-news h1, .view-mode-full h1, h1[itemprop="headline"]',
+            'body': 'div.section-media p, div.node-article p',
+            'date': 'div.date'
+        },
+        load_more_selector='li.pager-show-more-next a',
+        max_load_more_clicks=100,
+        delay=3.0
+    ))
+
     return crawlers
