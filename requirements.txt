@@ -6,3 +6,25 @@ tqdm==4.66.1
 lxml==5.1.0
 selenium==4.18.1
 webdriver-manager==4.0.1
+
+# Module A: Indexing dependencies
+langdetect>=1.0.9
+spacy>=3.7.0
+# Run: python -m spacy download en_core_web_sm
+# Run: python -m spacy download bn_core_news_sm (if available)
+
+# Module B: Query Processing dependencies
+transformers>=4.36.0
+torch>=2.1.0
+sentencepiece>=0.1.99  # Required for translation models
+nltk>=3.8.1
+
+# Module C: Retrieval dependencies
+rank-bm25>=0.2.2
+scikit-learn>=1.3.0
+numpy>=1.26.0
+sentence-transformers>=2.2.0
+
+# Optional dependencies
+# fuzzywuzzy==0.18.0  # Alternative fuzzy matching
+# python-Levenshtein==0.23.0  # Faster Levenshtein distance

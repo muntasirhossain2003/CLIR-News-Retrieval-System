@@ -1,0 +1,28 @@
+{
+  "processing": {
+    "processed": 5189,
+    "errors": 0,
+    "by_language": {
+      "en": 2576,
+      "bn": 2613,
+      "unknown": 0
+    },
+    "total_tokens": 42339,
+    "total_entities": 0,
+    "time_elapsed": 28.69,
+    "docs_per_second": 180.87
+  },
+  "index": {
+    "total_documents": 5189,
+    "total_terms": 12450,
+    "avg_doc_length": 8.16,
+    "index_size_mb": 0.49
+  },
+  "language_distribution": {
+    "en": 2576,
+    "bn": 2613,
+    "unknown": 0
+  },
+  "avg_tokens_per_doc": 8.16,
+  "avg_entities_per_doc": 0.0
+}
