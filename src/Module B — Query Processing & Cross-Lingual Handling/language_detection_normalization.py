@@ -1,7 +1,7 @@
 """
-Module B - Part 1: Query Processing (Language Detection & Normalization)
+Module B - Language Detection & Normalization
 
-This module provides basic query preprocessing without translation or expansion.
+This module provides query language detection and text normalization.
 Designed to be simple and explainable for academic purposes.
 """
 
@@ -105,12 +105,11 @@ def normalize_query(query: str, lang: str) -> str:
     return normalized
 
 
-def process_query_part1(query: str) -> dict:
+def process_query(query: str) -> dict:
     """
     Process a user query: detect language and normalize.
 
-    This is the main entry point for Part 1 of Module B.
-    Part 2 will add translation, Part 3 will add query expansion.
+    This is the main entry point for language detection and normalization.
 
     Args:
         query: Raw user input query
@@ -122,14 +121,14 @@ def process_query_part1(query: str) -> dict:
         - normalized_query: Processed query ready for retrieval
 
     Example:
-        >>> process_query_part1("  Climate Change  ")
+        >>> process_query("  Climate Change  ")
         {
             'original_query': '  Climate Change  ',
             'language': 'en',
             'normalized_query': 'climate change'
         }
 
-        >>> process_query_part1("জলবায়ু পরিবর্তন")
+        >>> process_query("জলবায়ু পরিবর্তন")
         {
             'original_query': 'জলবায়ু পরিবর্তন',
             'language': 'bn',
@@ -152,28 +151,3 @@ def process_query_part1(query: str) -> dict:
         "language": language,
         "normalized_query": normalized,
     }
-
-
-# For testing/debugging
-if __name__ == "__main__":
-    # Test cases
-    test_queries = [
-        "Climate Change",
-        "  Mobile Phone Technology  ",
-        "জলবায়ু পরিবর্তন",
-        "মোবাইল ফোন",
-        "",
-        "COVID-19 pandemic",
-        "করোনাভাইরাস মহামারী",
-    ]
-
-    print("=" * 70)
-    print("Module B - Part 1: Query Processing Test")
-    print("=" * 70)
-
-    for query in test_queries:
-        result = process_query_part1(query)
-        print(f"\nOriginal:   '{result['original_query']}'")
-        print(f"Language:   {result['language']}")
-        print(f"Normalized: '{result['normalized_query']}'")
-        print("-" * 70)
