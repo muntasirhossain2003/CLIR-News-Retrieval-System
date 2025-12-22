@@ -15,3 +15,6 @@ spacy==3.7.2
 stanza==1.8.0
 scikit-learn==1.3.2
 torch>=2.2.0
+
+# Module B: Query Processing
+googletrans==4.0.0-rc1

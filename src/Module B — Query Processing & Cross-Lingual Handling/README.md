@@ -2,7 +2,7 @@
 
 ## Overview
 
-This module handles query preprocessing for the CLIR (Cross-Lingual Information Retrieval) system. It prepares user queries for cross-lingual document retrieval by detecting language, normalizing text, and extracting named entities.
+This module handles query preprocessing for the CLIR (Cross-Lingual Information Retrieval) system. It prepares user queries for cross-lingual document retrieval by detecting language, normalizing text, extracting named entities, and translating queries across languages.
 
 ---
 
@@ -25,6 +25,14 @@ This module handles query preprocessing for the CLIR (Cross-Lingual Information 
 - **Performance optimized:** Models load once and reuse across queries (lazy loading)
 - Graceful degradation if models unavailable
 
+### 3. Query Translation (Cross-Lingual)
+
+- Translates queries between Bangla and English
+- Uses googletrans library (free Google Translate API wrapper)
+- Translates only when source ≠ target language
+- Graceful fallback to normalized query if translation fails
+- Enables searching in one language while retrieving documents in another
+
 ---
 
 ## Installation
@@ -33,7 +41,7 @@ This module handles query preprocessing for the CLIR (Cross-Lingual Information 
 
 ```bash
 # Install Python packages
-pip install spacy stanza fasttext-wheel
+pip install spacy stanza fasttext-wheel googletrans==4.0.0-rc1
 
 # Download language models
 python -m spacy download en_core_web_sm
@@ -49,6 +57,7 @@ Module B — Query Processing & Cross-Lingual Handling/
 ├── __init__.py                             # Module exports
 ├── language_detection_normalization.py     # Language detection & normalization
 ├── named_entity_extraction.py              # Named entity extraction
+├── query_translation.py                    # Cross-lingual query translation
 ├── query_pipeline.py                       # Complete processing pipeline
 └── README.md                               # This file
 ```
@@ -64,9 +73,8 @@ Module B — Query Processing & Cross-Lingual Handling/
 ```python
 from query_pipeline import process_complete_query
 
-# Process a query
+# Without translation
 result = process_complete_query("COVID-19 pandemic in Bangladesh")
-
 print(result)
 # Output:
 # {
@@ -75,6 +83,18 @@ print(result)
 #     'normalized_query': 'covid-19 pandemic in bangladesh',
 #     'entities': ['covid-19', 'bangladesh']
 # }
+
+# With translation (English query -> Bangla documents)
+result = process_complete_query("Climate change", target_lang='bn')
+print(result)
+# Output:
+# {
+#     'original_query': 'Climate change',
+#     'language': 'en',
+#     'normalized_query': 'climate change',
+#     'entities': [],
+#     'translated_query': 'জলবায়ু পরিবর্তন'
+# }
 ```
 
 #### Step-by-Step Processing
@@ -82,6 +102,7 @@ print(result)
 ```python
 from language_detection_normalization import process_query
 from named_entity_extraction import process_query_with_entities
+from query_translation import process_query_with_translation
 
 # Step 1: Language detection & normalization
 lang_result = process_query("প্রধানমন্ত্রী ঢাকা সফর করেছেন")
@@ -91,6 +112,10 @@ print(f"Normalized: {lang_result['normalized_query']}")
 # Step 2: Entity extraction
 final_result = process_query_with_entities(lang_result)
 print(f"Entities: {final_result['entities']}")
+
+# Step 3: Translation (optional)
+translated_result = process_query_with_translation(final_result, target_lang='en')
+print(f"Translated: {translated_result['translated_query']}")
 ```
 
 #### Individual Functions
@@ -98,6 +123,7 @@ print(f"Entities: {final_result['entities']}")
 ```python
 from language_detection_normalization import detect_query_language, normalize_query
 from named_entity_extraction import extract_query_entities
+from query_translation import translate_query
 
 # Detect language
 lang = detect_query_language("Climate change")  # Returns: 'en'
@@ -107,6 +133,9 @@ normalized = normalize_query("  Climate Change  ", "en")  # Returns: 'climate ch
 
 # Extract entities
 entities = extract_query_entities("Elon Musk's Tesla", "en")  # Returns: ['elon musk', 'tesla']
+
+# Translate query
+translated = translate_query("climate change", "en", "bn")  # Returns: 'জলবায়ু পরিবর্তন'
 ```
 
 ### Method 2: Command Line Testing
@@ -171,11 +200,30 @@ Adds entity extraction to pipeline.
 }
 ```
 
-### `query_pipeline.py`
+### `query_translation.py`
 
-#### `process_complete_query(user_query: str) -> dict`
+#### `translate_query(text: str, src_lang: str, tgt_lang: str) -> str`
 
-Complete pipeline: language detection → normalization → entity extraction.
+Translates text from source language to target language.
+
+**Args:**
+
+- `text`: Text to translate
+- `src_lang`: Source language ('bn' or 'en')
+- `tgt_lang`: Target language ('bn' or 'en')
+
+**Returns:** Translated text, or original if translation fails or same language
+
+**Example:**
+
+```python
+result = translate_query("climate change", "en", "bn")
+# Returns: 'জলবায়ু পরিবর্তন'
+```
+
+#### `process_query_with_translation(query_obj: dict, target_lang: str) -> dict`
+
+Adds translation to pipeline.
 
 **Returns:**
 
@@ -184,7 +232,44 @@ Complete pipeline: language detection → normalization → entity extraction.
     'original_query': str,
     'language': 'bn' | 'en',
     'normalized_query': str,
+    'entities': list,
+    'translated_query': str  # NEW FIELD
+}
+```
+
+### `query_pipeline.py`
+
+#### `process_complete_query(user_query: str, target_lang: str = None) -> dict`
+
+Complete pipeline: language detection → normalization → entity extraction → translation (optional).
+
+**Args:**
+
+- `user_query`: Raw user input
+- `target_lang`: Optional target language for translation ('bn' or 'en'). If None, no translation performed.
+
+**Returns:**
+
+Without translation:
+
+```python
+{
+    'original_query': str,
+    'language': 'bn' | 'en',
+    'normalized_query': str,
     'entities': list
+}
+```
+
+With translation:
+
+```python
+{
+    'original_query': str,
+    'language': 'bn' | 'en',
+    'normalized_query': str,
+    'entities': list,
+    'translated_query': str
 }
 ```
 
@@ -328,6 +413,32 @@ python -c "import stanza; stanza.download('bn')"
 1. Check internet connection
 2. Model will be downloaded to `models/lid.176.bin` (125 MB)
 3. Alternatively, system will use Unicode fallback (still works, just less accurate)
+
+### Issue: Translation Failures
+
+**Problem:** Query translation returns same text despite different languages
+
+**Explanation:** The `googletrans` library can be unstable. Module B includes comprehensive error detection:
+
+1. **Explicit validation checks:**
+
+   - Detects None/empty results
+   - Identifies silent failures (output == input when languages differ)
+   - Validates output length (detects truncation)
+   - Typed exception handling (ImportError, AttributeError, generic)
+
+2. **Logging behavior:**
+
+   ```
+   WARNING: Translation failed: Output identical to input despite different languages
+   WARNING:   Input: 'test query' (en)
+   WARNING:   Output: 'test query' (bn)
+   WARNING:   Action: Using normalized_query as fallback for CLIR evaluation
+   ```
+
+3. **Safe fallback:** Always returns normalized query on failure, ensuring system continues functioning
+
+**Impact on CLIR:** Fallback behavior is explicitly logged, allowing evaluation to distinguish between successful cross-lingual retrieval and monolingual fallback scenarios.
 
 ### Issue: Import Errors
 

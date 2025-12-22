@@ -4,6 +4,7 @@ Module B: Query Processing & Cross-Lingual Handling
 This module handles query preprocessing for the CLIR system.
 - Language detection and normalization
 - Named entity extraction
+- Query translation (cross-lingual)
 - Complete query processing pipeline
 """
 
@@ -18,6 +19,11 @@ from .named_entity_extraction import (
     process_query_with_entities,
 )
 
+from .query_translation import (
+    translate_query,
+    process_query_with_translation,
+)
+
 from .query_pipeline import (
     process_complete_query,
 )
@@ -28,5 +34,7 @@ __all__ = [
     "process_query",
     "extract_query_entities",
     "process_query_with_entities",
+    "translate_query",
+    "process_query_with_translation",
     "process_complete_query",
 ]
