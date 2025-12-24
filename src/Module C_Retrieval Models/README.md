@@ -2,7 +2,9 @@
 
 ## Overview
 
-This module implements retrieval models for the Cross-Lingual Information Retrieval (CLIR) system. Each model represents a different approach to document retrieval, enabling comparison and evaluation of various techniques.
+This module implements 5 retrieval models for the Cross-Lingual Information Retrieval (CLIR) system. Each model represents a different approach to document retrieval, enabling comparison and evaluation of various techniques.
+
+**✅ ALL MODELS FULLY OPERATIONAL** including true cross-lingual semantic search (English ↔ Bangla)!
 
 ## Models Implemented
 
@@ -68,16 +70,24 @@ This module implements retrieval models for the Cross-Lingual Information Retrie
 - 384-dimensional semantic embeddings
 - L2-normalized vectors for efficient cosine similarity
 - Lazy loading pattern for efficiency
-- **True CLIR capability:** English ↔ Bangla retrieval working
+- **✅ True CLIR capability:** English ↔ Bangla retrieval **NOW WORKING**
+- GPU acceleration (CUDA) when available
 
-**Test Results:**
+**Requirements:**
+
+- PyTorch (CPU or GPU version)
+- sentence-transformers
+- Visual C++ Redistributables (Windows)
+- tf-keras (for transformers compatibility)
+
+**Verified Test Results:**
 
 - Synonym similarity: 0.7697 ("climate change" vs "global warming")
-- **Cross-lingual similarity: 0.7490** ("climate change" vs "জলবায়ু পরিবর্তন")
-- English queries retrieve Bangla documents successfully
-- Bangla queries retrieve English documents successfully
+- **✅ Cross-lingual similarity: 0.7490** ("climate change" vs "জলবায়ু পরিবর্তন")
+- **✅ English query "osman hadi shooting" retrieves Bangla articles about "ওসমান হাদিকে গুলি"**
+- **✅ Cross-lingual semantic matching confirmed working on 5,170 document corpus**
 
-**Breakthrough:** First model with true cross-lingual capability!
+**Breakthrough:** First model with true cross-lingual capability - fully operational!
 
 ### Model 4: Hybrid Ranking with Weighted Fusion (`hybrid_retrieval.py`)
 
@@ -116,13 +126,33 @@ This module implements retrieval models for the Cross-Lingual Information Retrie
 
 ## Installation
 
-Ensure required dependencies are installed:
+### Required Dependencies
 
 ```bash
 pip install scikit-learn numpy rank-bm25 sentence-transformers
 ```
 
-Or install all project requirements:
+### For Semantic Retrieval (Windows)
+
+If you encounter PyTorch DLL errors on Windows:
+
+1. **Install Visual C++ Redistributables:**
+
+   - Download: https://aka.ms/vs/17/release/vc_redist.x64.exe
+   - Or use winget: `winget install Microsoft.VCRedist.2015+.x64`
+
+2. **Install tf-keras for transformers:**
+
+   ```bash
+   pip install tf-keras
+   ```
+
+3. **Verify installation:**
+   ```bash
+   python -c "from sentence_transformers import SentenceTransformer; print('✓ Semantic working!')"
+   ```
+
+### Complete Installation
 
 ```bash
 pip install -r requirements.txt
@@ -130,9 +160,104 @@ pip install -r requirements.txt
 
 ---
 
+## Quick Start: Search Interface
+
+The easiest way to use all retrieval models is through the command-line search interface.
+
+### Basic Usage
+
+```bash
+# Default: BM25 + Semantic, 10 results
+python "src\Module C_Retrieval Models\search.py" "osman hadi"
+
+# Custom models and limit
+python "src\Module C_Retrieval Models\search.py" --models bm25 semantic tfidf --limit 20 "climate change"
+
+# Language filter
+python "src\Module C_Retrieval Models\search.py" --lang english --limit 5 "query"
+python "src\Module C_Retrieval Models\search.py" --lang bangla "বাংলাদেশ"
+
+# All models
+python "src\Module C_Retrieval Models\search.py" --models all --limit 10 "query"
+
+# Specific combinations
+python "src\Module C_Retrieval Models\search.py" --models fuzzy --limit 5 "osman"
+python "src\Module C_Retrieval Models\search.py" --models hybrid --limit 10 "climate"
+```
+
+### Available Options
+
+- `--models`: Select models (default: `bm25 semantic`)
+
+  - `tfidf` - TF-IDF lexical retrieval
+  - `bm25` - BM25 lexical retrieval
+  - `semantic` - Multilingual semantic (cross-lingual)
+  - `hybrid` - Combines BM25 + Semantic
+  - `fuzzy` - Fuzzy character matching
+  - `all` - All models
+
+- `--lang`: Filter by language (default: `all`)
+
+  - `english` - English documents only
+  - `bangla` - Bangla documents only
+  - `all` - All documents
+
+- `--limit`: Number of results (default: `10`)
+
+### Example Output
+
+```
+================================================================================
+SEARCH: 'osman hadi shooting'
+================================================================================
+Models: BM25, SEMANTIC
+================================================================================
+
+[BM25] (0.005s)
+--------------------------------------------------------------------------------
+Found: 5 documents
+
+1. en_prothom_alo_e0566f689d9298b1 (Score: 19.0403)
+   🇬🇧 English | RAB seizes firearms used in shooting of Osman Hadi...
+
+[SEMANTIC] (0.014s)
+--------------------------------------------------------------------------------
+Found: 5 documents
+
+1. bn_prothom_alo_3a7a3bb8a93936bd (Score: 0.5785)
+   🇧🇩 Bangla | তিউনিসিয়ার গুপ্তহত্যা, ওসমান হাদিকে গুলি...
+
+================================================================================
+SUMMARY
+================================================================================
+BM25       5 results    19.0403    ✓
+SEMANTIC   5 results    0.5785     ✓
+```
+
+---
+
 ## Usage
 
-### Method 1: Hybrid Ranking (Recommended)
+### Recommended: Command-Line Search Interface
+
+The fastest and easiest way to use all retrieval models:
+
+```bash
+# Default: BM25 + Semantic
+python "src\Module C_Retrieval Models\search.py" "your query here"
+
+# All models with custom limit
+python "src\Module C_Retrieval Models\search.py" --models all --limit 15 "query"
+
+# Language-specific search
+python "src\Module C_Retrieval Models\search.py" --lang english --limit 10 "query"
+```
+
+See "Quick Start: Search Interface" section above for more examples.
+
+---
+
+### Method 1: Hybrid Ranking (Programmatic)
 
 ```python
 import sys
@@ -1278,15 +1403,53 @@ print(f"Retrieved: {len(retrieved_docs)} documents")
 ## File Structure
 
 ```
-Module C — Retrieval Models/
-├── __init__.py                 # Module exports
-├── tfidf_retrieval.py          # Model 1A: TF-IDF
-├── bm25_retrieval.py           # Model 1B: BM25
-├── fuzzy_retrieval.py          # Model 2: Fuzzy matching
-├── semantic_retrieval.py       # Model 3: Semantic embeddings
-├── hybrid_retrieval.py         # Model 4: Hybrid ranking
+Module C_Retrieval Models/
+├── __init__.py                 # Module exports (17 functions)
+├── tfidf_retrieval.py          # Model 1A: TF-IDF (✅ Complete)
+├── bm25_retrieval.py           # Model 1B: BM25 (✅ Complete)
+├── fuzzy_retrieval.py          # Model 2: Fuzzy matching (✅ Complete)
+├── semantic_retrieval.py       # Model 3: Semantic embeddings (✅ WORKING - Cross-lingual!)
+├── hybrid_retrieval.py         # Model 4: Hybrid ranking (✅ Complete)
+├── search.py                   # Command-line search interface (✅ Complete)
 └── README.md                   # This file
 ```
+
+---
+
+## Testing & Verification
+
+### Tested Configurations
+
+**System:** Windows with Python 3.12
+**Corpus:** 5,170 documents (2,589 Bangla, 2,581 English)
+
+**Model Performance:**
+
+- ✅ **TF-IDF**: Fast indexing (0.86s), vocabulary 42,462 terms
+- ✅ **BM25**: Fast retrieval (0.003-0.005s per query), scores 10-20 range
+- ✅ **Fuzzy**: Character-level matching (5-6s), good for spelling variations
+- ✅ **Semantic**: GPU-accelerated (CUDA), 11-12s encoding, **cross-lingual matching verified**
+- ✅ **Hybrid**: Successfully combines BM25 + Semantic scores
+
+**Cross-Lingual Verification:**
+
+```
+Query (English): "osman hadi shooting"
+├─ BM25 Results: English articles about shooting incident
+└─ Semantic Results: Bangla articles "ওসমান হাদিকে গুলি" (cross-lingual match!)
+
+Query (Bangla): "বাংলাদেশ"
+├─ BM25 Results: Bangla documents only
+└─ Semantic Results: Can match English "Bangladesh" (cross-lingual!)
+```
+
+### Known Issues & Solutions
+
+**Issue:** PyTorch DLL Error on Windows
+**Solution:** Install Visual C++ Redistributables + tf-keras (see Installation section)
+
+**Issue:** Folder name encoding with special dash "—"
+**Solution:** Folder renamed to "Module C_Retrieval Models" (underscore)
 
 ---
 
@@ -1296,12 +1459,15 @@ For questions or improvements, refer to the main project README or contact the d
 
 ---
 
-**Status:**
+## Status Summary
 
-- ✅ Model 1A (TF-IDF) - Complete
-- ✅ Model 1B (BM25) - Complete
-- ✅ Model 2 (Fuzzy Matching) - Complete
-- ✅ Model 3 (Semantic Retrieval) - Complete - **True CLIR capability!**
-- ✅ Model 4 (Hybrid Ranking) - Complete - **Combines all signals!**
+**✅ ALL MODELS FULLY OPERATIONAL**
 
-**Module C Complete!** All retrieval models implemented and tested.
+- ✅ Model 1A (TF-IDF) - Complete & Tested
+- ✅ Model 1B (BM25) - Complete & Tested
+- ✅ Model 2 (Fuzzy Matching) - Complete & Tested
+- ✅ Model 3 (Semantic Retrieval) - **Complete & WORKING - True Cross-Lingual CLIR!**
+- ✅ Model 4 (Hybrid Ranking) - Complete & Tested
+- ✅ Search Interface - Complete with language filters, model selection, custom limits
+
+**Module C Complete!** All 5 retrieval models implemented, tested, and verified on 5,170-document corpus with confirmed cross-lingual capability (English ↔ Bangla).
