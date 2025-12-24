@@ -581,6 +581,169 @@ Container for BM25 index components.
 
 ---
 
+### Hybrid Retrieval Functions
+
+#### `normalize_scores(results: List[Tuple[str, float]], method: str = 'minmax') -> Dict[str, float]`
+
+Normalize retrieval scores to [0, 1] range.
+
+**Parameters:**
+
+- `results` (list): List of `(doc_id, score)` tuples
+- `method` (str): Normalization method - `'minmax'` or `'standard'`
+
+**Returns:**
+
+- `dict`: Dictionary mapping `doc_id` → `normalized_score`
+
+**Methods:**
+
+- `'minmax'`: Scale to [0, 1] using (score - min) / (max - min)
+- `'standard'`: Z-score normalization, then sigmoid to [0, 1]
+
+**Example:**
+
+```python
+from hybrid_retrieval import normalize_scores
+
+results = [('doc1', 0.8), ('doc2', 0.5), ('doc3', 0.2)]
+normalized = normalize_scores(results, method='minmax')
+# {'doc1': 1.0, 'doc2': 0.5, 'doc3': 0.0}
+```
+
+---
+
+#### `combine_scores(score_dicts: List[Dict[str, float]], weights: List[float] = None, aggregation: str = 'weighted_sum') -> Dict[str, float]`
+
+Combine multiple score dictionaries using weighted aggregation.
+
+**Parameters:**
+
+- `score_dicts` (list): List of dictionaries mapping `doc_id` → `score`
+- `weights` (list): List of weights for each score dict (default: equal weights)
+- `aggregation` (str): Aggregation method - `'weighted_sum'`, `'max'`, `'min'`, `'avg'`
+
+**Returns:**
+
+- `dict`: Dictionary mapping `doc_id` → `combined_score`
+
+**Aggregation Methods:**
+
+- `'weighted_sum'`: Σ(weight_i × score_i)
+- `'max'`: max(scores) across all methods
+- `'min'`: min(scores) across all methods
+- `'avg'`: average of scores (ignores weights)
+
+**Example:**
+
+```python
+from hybrid_retrieval import combine_scores
+
+lexical_scores = {'doc1': 0.8, 'doc2': 0.5}
+semantic_scores = {'doc1': 0.6, 'doc3': 0.9}
+combined = combine_scores(
+    [lexical_scores, semantic_scores],
+    weights=[0.6, 0.4],
+    aggregation='weighted_sum'
+)
+# {'doc1': 0.72, 'doc2': 0.30, 'doc3': 0.36}
+```
+
+---
+
+#### `hybrid_rank(lexical_results, semantic_results, fuzzy_results=None, weights=None, top_k=10, normalization='minmax', aggregation='weighted_sum') -> List[Tuple[str, float]]`
+
+Combine lexical, semantic, and optionally fuzzy retrieval results using hybrid ranking.
+
+**Parameters:**
+
+- `lexical_results` (list): Results from TF-IDF or BM25 retrieval
+- `semantic_results` (list): Results from semantic retrieval
+- `fuzzy_results` (list, optional): Results from fuzzy matching
+- `weights` (dict): Dictionary with keys `'lexical'`, `'semantic'`, `'fuzzy'`
+  - Default without fuzzy: `{'lexical': 0.5, 'semantic': 0.5}`
+  - Default with fuzzy: `{'lexical': 0.4, 'semantic': 0.4, 'fuzzy': 0.2}`
+- `top_k` (int): Number of top results to return (default: 10)
+- `normalization` (str): Score normalization method - `'minmax'` or `'standard'`
+- `aggregation` (str): Combination method - `'weighted_sum'`, `'max'`, `'min'`, `'avg'`
+
+**Returns:**
+
+- `list`: List of `(doc_id, combined_score)` tuples, sorted by score descending
+
+**Example:**
+
+```python
+from bm25_retrieval import build_bm25_index, retrieve_bm25
+from semantic_retrieval import encode_documents, retrieve_semantic
+from hybrid_retrieval import hybrid_rank
+
+# Get results from different methods
+tfidf_results = retrieve_bm25(query, bm25_index, top_k=20)
+semantic_results = retrieve_semantic(query, doc_embeddings, top_k=20)
+
+# Combine using hybrid ranking
+hybrid_results = hybrid_rank(
+    tfidf_results,
+    semantic_results,
+    weights={'lexical': 0.6, 'semantic': 0.4},
+    top_k=10
+)
+
+for doc_id, score in hybrid_results:
+    print(f"{doc_id}: {score:.4f}")
+```
+
+**Strategy Recommendations:**
+
+- **Keyword-heavy queries:** Higher lexical weight (0.6-0.7)
+- **Cross-lingual queries:** Higher semantic weight (0.6-0.7)
+- **Noisy queries:** Include fuzzy with weight 0.2-0.3
+- **Balanced:** Equal weights (0.5, 0.5)
+
+---
+
+#### `analyze_fusion(lexical_results, semantic_results, fuzzy_results=None, top_k=10) -> Dict[str, List[Tuple[str, float]]]`
+
+Analyze different fusion strategies by trying multiple weight combinations.
+
+**Parameters:**
+
+- `lexical_results` (list): Results from lexical retrieval
+- `semantic_results` (list): Results from semantic retrieval
+- `fuzzy_results` (list, optional): Results from fuzzy matching
+- `top_k` (int): Number of top results for each strategy
+
+**Returns:**
+
+- `dict`: Dictionary mapping `strategy_name` → `results` list
+
+**Strategies Tested:**
+
+- `'lexical_only'`: 100% lexical
+- `'semantic_only'`: 100% semantic
+- `'balanced'`: 50-50 lexical-semantic
+- `'lexical_heavy'`: 70% lexical, 30% semantic
+- `'semantic_heavy'`: 30% lexical, 70% semantic
+- `'fuzzy_included'`: With fuzzy matching if provided
+
+**Example:**
+
+```python
+from hybrid_retrieval import analyze_fusion
+
+strategies = analyze_fusion(lexical_res, semantic_res, top_k=5)
+
+for strategy_name, results in strategies.items():
+    print(f"\n{strategy_name}:")
+    for doc_id, score in results:
+        print(f"  {doc_id}: {score:.4f}")
+```
+
+**Use Case:** Experiment to find optimal weights for your dataset and query type.
+
+---
+
 ## BM25 Configuration
 
 BM25Okapi uses default parameters:
@@ -744,19 +907,101 @@ TfidfVectorizer(
 
 ## Model Comparison
 
-### TF-IDF vs BM25
+### All Models Overview
 
-| Aspect              | TF-IDF             | BM25              |
-| ------------------- | ------------------ | ----------------- |
-| **Ranking Quality** | Good               | Better            |
-| **Speed**           | Faster             | Slightly slower   |
-| **Memory**          | Sparse (efficient) | Tokenized corpus  |
-| **Term Saturation** | Linear             | Saturates         |
-| **Length Norm**     | L2 norm            | Parameterized (b) |
-| **Tuning**          | Fixed              | Tunable (k1, b)   |
-| **Best For**        | Large collections  | Mixed-length docs |
+| Aspect              | TF-IDF                | BM25                    | Fuzzy               | Semantic      | Hybrid       |
+| ------------------- | --------------------- | ----------------------- | ------------------- | ------------- | ------------ |
+| **Ranking Quality** | Good                  | Better                  | Variable            | Excellent     | Best         |
+| **Cross-Lingual**   | ❌ No                 | ❌ No                   | ❌ No               | ✅ Yes        | ✅ Yes       |
+| **Speed**           | Fast                  | Medium                  | Slow                | Medium        | Medium       |
+| **Memory**          | Low                   | Medium                  | Low                 | High          | High         |
+| **Training**        | None                  | None                    | None                | Pretrained    | None         |
+| **Keyword Match**   | Exact                 | Exact                   | Fuzzy               | Semantic      | Both         |
+| **Query Type**      | Keywords              | Keywords                | Typos               | Conceptual    | All          |
+| **Best For**        | Same-lang, large docs | Same-lang, mixed length | Spelling variations | Cross-lingual | General CLIR |
 
-**Recommendation:** Start with BM25 for better ranking, use TF-IDF if speed/memory critical.
+### Detailed Comparison
+
+**TF-IDF (Model 1A):**
+
+- ✅ Fast and efficient
+- ✅ Good for large collections
+- ✅ Interpretable scores
+- ❌ No cross-lingual capability
+- ❌ Linear term frequency (no saturation)
+
+**BM25 (Model 1B):**
+
+- ✅ Better ranking than TF-IDF
+- ✅ Term frequency saturation
+- ✅ Tunable parameters (k1, b)
+- ❌ No cross-lingual capability
+- ❌ Requires tokenized corpus in memory
+
+**Fuzzy Matching (Model 2):**
+
+- ✅ Handles spelling variations
+- ✅ Good for typos and misspellings
+- ✅ No dependencies (stdlib only)
+- ❌ Fails for cross-script languages
+- ❌ Slow for large collections
+- ❌ No semantic understanding
+
+**Semantic Retrieval (Model 3):**
+
+- ✅ **TRUE cross-lingual capability**
+- ✅ Understands semantic similarity
+- ✅ Multilingual (50+ languages)
+- ✅ Synonym matching
+- ❌ Higher memory (embeddings)
+- ❌ May miss exact keyword matches
+
+**Hybrid Ranking (Model 4):**
+
+- ✅ **Combines all strengths**
+- ✅ Lexical precision + semantic understanding
+- ✅ Adaptable to query type
+- ✅ Cross-lingual capable
+- ✅ No retraining needed
+- ❌ Highest computational cost
+- ❌ Requires tuning weights
+
+### Strategy Recommendations
+
+**Use TF-IDF when:**
+
+- You have very large collections (>100K docs)
+- Speed is critical
+- Same-language retrieval only
+- Establishing baseline performance
+
+**Use BM25 when:**
+
+- Ranking quality matters
+- Mixed document lengths
+- Same-language retrieval
+- Better than TF-IDF baseline needed
+
+**Use Fuzzy when:**
+
+- Queries have spelling variations
+- Same script language only
+- Demonstrating lexical limitations
+- No ML dependencies available
+
+**Use Semantic when:**
+
+- Cross-lingual queries (different languages)
+- Conceptual/semantic similarity needed
+- Synonym matching important
+- Willing to use embeddings
+
+**Use Hybrid when:**
+
+- Building production CLIR system
+- Need both keyword + semantic matching
+- Can afford computational cost
+- Want best overall performance
 
 ---
 
