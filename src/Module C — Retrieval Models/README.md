@@ -25,6 +25,93 @@ This module implements retrieval models for the Cross-Lingual Information Retrie
 - Sensitive to vocabulary mismatch
 - No semantic understanding
 
+### Model 1B: BM25 Based Lexical Retrieval (`bm25_retrieval.py`)
+
+**Purpose:** Improved lexical retrieval using BM25 (Best Match 25) probabilistic ranking.
+
+**Features:**
+
+- Probabilistic term weighting (more effective than TF-IDF)
+- Term frequency saturation (prevents over-weighting repeated terms)
+- Better document length normalization
+- Tunable parameters: k1 (saturation), b (length penalty)
+
+**Characteristics:**
+
+- Better ranking quality than TF-IDF
+- SOTA among lexical methods
+- Still limited to same-language retrieval
+
+### Model 2: Fuzzy and Transliteration-Based Matching (`fuzzy_retrieval.py`)
+
+**Purpose:** Character-level matching for handling spelling variations and typos.
+
+**Features:**
+
+- Two methods: n-gram (Jaccard) or sequence matching (SequenceMatcher)
+- Document-level and term-level fuzzy matching
+- Good for handling spelling variations
+
+**Limitations (Academic Value):**
+
+- Fails for cross-lingual queries (different scripts)
+- No semantic understanding
+- Demonstrates why lexical methods alone are insufficient for CLIR
+
+### Model 3: Semantic Retrieval with Multilingual Embeddings (`semantic_retrieval.py`)
+
+**Purpose:** True cross-lingual retrieval using multilingual sentence embeddings.
+
+**Features:**
+
+- Uses `paraphrase-multilingual-MiniLM-L12-v2` model (50+ languages)
+- 384-dimensional semantic embeddings
+- L2-normalized vectors for efficient cosine similarity
+- Lazy loading pattern for efficiency
+- **True CLIR capability:** English ↔ Bangla retrieval working
+
+**Test Results:**
+
+- Synonym similarity: 0.7697 ("climate change" vs "global warming")
+- **Cross-lingual similarity: 0.7490** ("climate change" vs "জলবায়ু পরিবর্তন")
+- English queries retrieve Bangla documents successfully
+- Bangla queries retrieve English documents successfully
+
+**Breakthrough:** First model with true cross-lingual capability!
+
+### Model 4: Hybrid Ranking with Weighted Fusion (`hybrid_retrieval.py`)
+
+**Purpose:** Combine lexical, semantic, and fuzzy retrieval scores using weighted fusion.
+
+**Features:**
+
+- Score normalization (min-max or standard z-score)
+- Weighted linear combination
+- Configurable weights for different query types
+- Multiple aggregation methods (weighted_sum, max, min, avg)
+- Strategy analysis to find optimal weights
+
+**Key Functions:**
+
+- `normalize_scores()`: Scale scores to [0, 1] range
+- `combine_scores()`: Weighted aggregation of multiple score dicts
+- `hybrid_rank()`: Main function combining all retrieval signals
+- `analyze_fusion()`: Test multiple weight strategies
+
+**Strategy Recommendations:**
+
+- **Keyword-heavy queries:** Higher lexical weight (0.6-0.7)
+- **Cross-lingual queries:** Higher semantic weight (0.6-0.7)
+- **Noisy queries:** Include fuzzy matching (0.2-0.3)
+- **Balanced:** Equal weights (0.5 lexical, 0.5 semantic)
+
+**Advantages:**
+
+- Combines strengths of all models
+- Lexical precision + semantic cross-lingual capability
+- Adaptable to different query types
+- No retraining required
+
 ---
 
 ## Installation
@@ -32,7 +119,7 @@ This module implements retrieval models for the Cross-Lingual Information Retrie
 Ensure required dependencies are installed:
 
 ```bash
-pip install scikit-learn numpy rank-bm25
+pip install scikit-learn numpy rank-bm25 sentence-transformers
 ```
 
 Or install all project requirements:
@@ -45,7 +132,69 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Method 1: Direct Function Calls (TF-IDF)
+### Method 1: Hybrid Ranking (Recommended)
+
+```python
+import sys
+sys.path.insert(0, 'src')
+
+from Module_C___Retrieval_Models import (
+    build_bm25_index, retrieve_bm25,
+    encode_documents, retrieve_semantic,
+    hybrid_rank
+)
+
+# Load documents
+documents = {
+    'doc1': 'climate change impacts environment',
+    'doc2': 'renewable energy reduces emissions',
+    'doc3': 'economic policy affects industry'
+}
+
+# Build indexes
+bm25_index = build_bm25_index(documents)
+doc_embeddings = encode_documents(documents)
+
+# Query
+query = "environmental impact"
+
+# Get results from different methods
+lexical_results = retrieve_bm25(query, bm25_index, top_k=20)
+semantic_results = retrieve_semantic(query, doc_embeddings, top_k=20)
+
+# Combine using hybrid ranking
+hybrid_results = hybrid_rank(
+    lexical_results,
+    semantic_results,
+    weights={'lexical': 0.5, 'semantic': 0.5},
+    top_k=10
+)
+
+# Display results
+for rank, (doc_id, score) in enumerate(hybrid_results, 1):
+    print(f"{rank}. {doc_id}: {score:.4f}")
+```
+
+### Method 2: Strategy Analysis
+
+```python
+from Module_C___Retrieval_Models import analyze_fusion
+
+# Test multiple weight strategies
+strategies = analyze_fusion(
+    lexical_results,
+    semantic_results,
+    top_k=10
+)
+
+# Compare strategies
+for strategy_name, results in strategies.items():
+    print(f"\n{strategy_name}:")
+    for rank, (doc_id, score) in enumerate(results[:3], 1):
+        print(f"  {rank}. {doc_id}: {score:.4f}")
+```
+
+### Method 3: Direct Function Calls (TF-IDF)
 
 ```python
 from tfidf_retrieval import build_tfidf_index, retrieve_tfidf
@@ -886,8 +1035,11 @@ print(f"Retrieved: {len(retrieved_docs)} documents")
 ```
 Module C — Retrieval Models/
 ├── __init__.py                 # Module exports
-├── tfidf_retrieval.py          # Model 1A implementation
-├── bm25_retrieval.py           # Model 1B implementation
+├── tfidf_retrieval.py          # Model 1A: TF-IDF
+├── bm25_retrieval.py           # Model 1B: BM25
+├── fuzzy_retrieval.py          # Model 2: Fuzzy matching
+├── semantic_retrieval.py       # Model 3: Semantic embeddings
+├── hybrid_retrieval.py         # Model 4: Hybrid ranking
 └── README.md                   # This file
 ```
 
@@ -905,6 +1057,6 @@ For questions or improvements, refer to the main project README or contact the d
 - ✅ Model 1B (BM25) - Complete
 - ✅ Model 2 (Fuzzy Matching) - Complete
 - ✅ Model 3 (Semantic Retrieval) - Complete - **True CLIR capability!**
-- ⏳ Model 4 (Hybrid Retrieval) - Planned
+- ✅ Model 4 (Hybrid Ranking) - Complete - **Combines all signals!**
 
-**Next:** Model 4 (Hybrid Retrieval combining lexical + semantic signals)
+**Module C Complete!** All retrieval models implemented and tested.
