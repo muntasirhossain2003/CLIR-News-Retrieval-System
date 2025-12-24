@@ -18,3 +18,7 @@ torch>=2.2.0
 
 # Module B: Query Processing
 googletrans==4.0.0-rc1
+
+# Module C: Retrieval Models
+rank-bm25==0.2.2
+# Also uses scikit-learn and numpy (already listed in Module 2)
