@@ -135,7 +135,7 @@ from Module_C___Retrieval_Models import (
 
 4
 
-### Method 3: Integration with Module B (Query Processing)
+### Method 5: Integration with Module B (Query Processing)
 
 ```python
 import sys
@@ -903,7 +903,8 @@ For questions or improvements, refer to the main project README or contact the d
 
 - ✅ Model 1A (TF-IDF) - Complete
 - ✅ Model 1B (BM25) - Complete
-- ⏳ Model 2 (Semantic Retrieval) - Planned
-- ⏳ Model 3 (Hybrid Retrieval) - Planned
+- ✅ Model 2 (Fuzzy Matching) - Complete
+- ✅ Model 3 (Semantic Retrieval) - Complete - **True CLIR capability!**
+- ⏳ Model 4 (Hybrid Retrieval) - Planned
 
-**Next:** Model 2 (Semantic Retrieval with Embeddings)
+**Next:** Model 4 (Hybrid Retrieval combining lexical + semantic signals)

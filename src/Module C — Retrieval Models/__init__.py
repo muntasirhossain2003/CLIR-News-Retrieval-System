@@ -7,7 +7,7 @@ Models:
 - Model 1A: TF-IDF based lexical retrieval (tfidf_retrieval.py)
 - Model 1B: BM25 based lexical retrieval (bm25_retrieval.py)
 - Model 2: Fuzzy and transliteration-based matching (fuzzy_retrieval.py)
-- Model 3: Semantic retrieval with embeddings (coming soon)
+- Model 3: Semantic retrieval with multilingual embeddings (semantic_retrieval.py)
 - Model 4: Hybrid retrieval combining lexical + semantic (coming soon)
 """
 
@@ -17,6 +17,12 @@ from .fuzzy_retrieval import (
     fuzzy_match,
     retrieve_fuzzy,
     retrieve_fuzzy_per_term,
+)
+from .semantic_retrieval import (
+    encode_documents,
+    retrieve_semantic,
+    retrieve_semantic_with_query_embedding,
+    compute_similarity,
 )
 
 __all__ = [
@@ -29,4 +35,8 @@ __all__ = [
     "fuzzy_match",
     "retrieve_fuzzy",
     "retrieve_fuzzy_per_term",
+    "encode_documents",
+    "retrieve_semantic",
+    "retrieve_semantic_with_query_embedding",
+    "compute_similarity",
 ]
