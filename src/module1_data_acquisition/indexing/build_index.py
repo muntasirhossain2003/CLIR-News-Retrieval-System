@@ -25,6 +25,8 @@ from src.module1_data_acquisition.indexing.preprocessor import TextPreprocessor
 from src.module1_data_acquisition.indexing.lexical_indexer import LexicalIndexer
 from src.module1_data_acquisition.indexing.semantic_indexer import SemanticIndexer
 
+os.makedirs("logs", exist_ok=True)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -206,6 +208,7 @@ def build_semantic_index(documents: list, index_dir: str = "indexes/semantic"):
         documents: List of processed documents
         index_dir: Directory to save index
     """
+
     logger.info("=" * 60)
     logger.info("BUILDING SEMANTIC INDEX (Embeddings)")
     logger.info("=" * 60)
