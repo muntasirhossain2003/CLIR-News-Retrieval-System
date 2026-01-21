@@ -1,38 +1,5 @@
 """
 Module C - Model 1A: BM25 Lexical Retrieval
-
-This module implements BM25 (Best Matching 25) ranking for lexical document retrieval.
-BM25 is a bag-of-words retrieval function that ranks documents based on query term
-frequencies, document lengths, and corpus statistics.
-
-WHY BM25 FOR CLIR?
-------------------
-- Industry standard for lexical retrieval (used by Elasticsearch, Lucene)
-- Better than TF-IDF for handling term frequency saturation
-- Document length normalization prevents bias toward longer documents
-- Well-understood parameters (k1, b) for tuning
-
-FAILURE CASES (Important for IR evaluation):
---------------------------------------------
-1. SYNONYMS: BM25 fails when query uses different words with same meaning
-   - "car" vs "automobile" - BM25 won't match these
-   - Solution: Query expansion or semantic search
-
-2. PARAPHRASES: Different sentence structures with same meaning fail
-   - "climate change effects" vs "how global warming impacts us"
-   - BM25 relies on exact term overlap
-
-3. CROSS-LINGUAL: Cannot bridge language gaps
-   - English query won't match Bangla documents (different scripts)
-   - Solution: Translation + semantic embeddings
-
-4. CROSS-SCRIPT: English ↔ বাংলা matching impossible with BM25
-   - "Dhaka" won't match "ঢাকা"
-   - Solution: Transliteration + fuzzy matching
-
-5. MORPHOLOGICAL VARIATIONS: Different word forms may not match
-   - "running" vs "run" without stemming/lemmatization
-   - Solution: Text preprocessing with stemming
 """
 
 import logging
@@ -159,27 +126,25 @@ class BM25Index:
 
     def _tokenize(self, text: str) -> List[str]:
         """
-        Tokenize text into words.
-
-        Simple whitespace + punctuation tokenization.
-        Lowercase for case-insensitive matching.
-
-        Args:
-            text: Input text string
-
-        Returns:
-            List of lowercase tokens
+        Tokenize text into words with Bangla support.
         """
         if not text:
             return []
 
-        # Convert to lowercase and split on whitespace
-        text = text.lower()
-
-        # Remove common punctuation but preserve hyphens (COVID-19)
         import re
 
-        tokens = re.findall(r"\b[\w-]+\b", text)
+        # Detect if text contains Bangla (Unicode range U+0980 to U+09FF)
+        has_bangla = bool(re.search(r"[\u0980-\u09ff]", text))
+
+        if has_bangla:
+            # Bangla tokenization: split on whitespace + common punctuation
+            # Do NOT lowercase (Bangla has no case, lowercasing corrupts Unicode)
+            # Use Unicode-aware word pattern
+            tokens = re.findall(r"[\w\u0980-\u09ff]+", text)
+        else:
+            # English tokenization: lowercase + word boundaries
+            text = text.lower()
+            tokens = re.findall(r"\b[\w-]+\b", text)
 
         return tokens
 
@@ -219,20 +184,17 @@ class BM25Index:
 
         start_time = time.time()
 
-        # Apply query preprocessing if enabled
+        # Use query as-is if preprocess=False (already preprocessed by caller)
         search_query = query
         if preprocess and MODULE_B_AVAILABLE and process_complete_query:
             try:
                 processed = process_complete_query(query, target_lang=target_lang)
-                # Use translated query if available, else normalized query
                 if target_lang and processed.get("translated_query"):
                     search_query = processed["translated_query"]
-                    logger.info(f"Using translated query: {search_query}")
                 else:
                     search_query = processed.get("normalized_query", query)
-                    logger.info(f"Using normalized query: {search_query}")
             except Exception as e:
-                logger.warning(f"Query preprocessing failed: {e}, using original query")
+                logger.warning(f"Query preprocessing failed: {e}")
                 search_query = query
 
         # Tokenize query

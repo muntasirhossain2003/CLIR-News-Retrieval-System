@@ -1,48 +1,5 @@
 """
-Module C - Model 4: Hybrid Retrieval
-
-This module implements hybrid retrieval that combines:
-- BM25 (lexical matching)
-- Semantic embeddings (meaning-based matching)
-- Fuzzy/transliteration matching (cross-script support)
-
-WHY HYBRID RETRIEVAL?
----------------------
-No single retrieval method is perfect for all queries:
-
-- BM25: Excellent for exact keyword matching, fails on synonyms
-- Semantic: Great for meaning, may miss specific terms
-- Fuzzy: Handles spelling variations, no semantic understanding
-
-Hybrid combines strengths and mitigates weaknesses.
-
-SCORE FUSION STRATEGY:
-----------------------
-Weighted linear combination:
-    final_score = w1 * bm25_norm + w2 * semantic_norm + w3 * fuzzy_norm
-
-Default weights (tunable):
-    BM25:     0.3 (precise term matching)
-    Semantic: 0.5 (meaning similarity - most important for CLIR)
-    Fuzzy:    0.2 (cross-script and typo handling)
-
-Semantic gets highest weight because:
-- Most important for cross-lingual retrieval
-- Handles vocabulary mismatch (the main CLIR challenge)
-
-NORMALIZATION:
---------------
-All scores normalized to [0, 1] before fusion:
-- BM25: Min-max normalization
-- Semantic: Already normalized (cosine similarity mapped to [0,1])
-- Fuzzy: Already in [0, 1]
-
-CONFIDENCE SCORING:
--------------------
-Low confidence warnings when:
-- Top score < 0.3
-- Large gap between hybrid and individual scores
-- Conflicting rankings from different methods
+Module C - Model 4: Hybrid Retrieval - Score Fusion
 """
 
 import logging
@@ -50,6 +7,7 @@ import time
 import sys
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 
@@ -77,6 +35,10 @@ except ImportError as e:
 
 # Default fusion weights
 DEFAULT_WEIGHTS = {"bm25": 0.3, "semantic": 0.5, "fuzzy": 0.2}
+
+# Parallel execution config
+ENABLE_PARALLEL = True
+MAX_WORKERS = 3
 
 # Confidence thresholds
 LOW_CONFIDENCE_THRESHOLD = 0.3
@@ -160,11 +122,6 @@ class HybridRetriever:
     ):
         """
         Update fusion weights.
-
-        Args:
-            bm25: Weight for BM25 scores
-            semantic: Weight for semantic scores
-            fuzzy: Weight for fuzzy scores
         """
         if bm25 is not None:
             self.weights["bm25"] = bm25
@@ -192,22 +149,13 @@ class HybridRetriever:
         min_score: float = 0.0,
         preprocess: bool = True,
         target_lang: str = None,
+        cross_lingual: bool = True,  # NEW: Enable true CLIR
     ) -> List[RetrievalResult]:
         """
-        Perform hybrid retrieval.
+        Perform hybrid retrieval with TRUE cross-lingual support.
 
-        Args:
-            query: Search query string
-            top_k: Number of results to return
-            use_bm25: Enable BM25 retrieval
-            use_semantic: Enable semantic retrieval
-            use_fuzzy: Enable fuzzy matching
-            min_score: Minimum final score threshold
-            preprocess: Whether to apply Module B query preprocessing (default: True)
-            target_lang: Target language for translation ('bn' or 'en')
-
-        Returns:
-            List of RetrievalResult objects with fused scores
+        For CLIR: Searches with BOTH original query AND translated query,
+        then merges results to find documents in both languages.
         """
         if not query or not query.strip():
             logger.warning("Empty query provided")
@@ -215,81 +163,146 @@ class HybridRetriever:
 
         start_time = time.time()
 
-        # Apply query preprocessing if enabled
-        search_query = query
+        # Apply query preprocessing
+        original_query = query
+        translated_query = None
+        source_lang = "en"
         query_info = {}
+
         if preprocess and MODULE_B_AVAILABLE and process_complete_query:
             try:
-                processed = process_complete_query(query, target_lang=target_lang)
+                # First, detect language and normalize
+                processed = process_complete_query(query, target_lang=None)
                 query_info = processed
-                # Use translated query if available, else normalized query
-                if target_lang and processed.get("translated_query"):
-                    search_query = processed["translated_query"]
-                    logger.info(f"Using translated query: {search_query}")
-                else:
-                    search_query = processed.get("normalized_query", query)
-                    logger.info(f"Using normalized query: {search_query}")
+                source_lang = processed.get("language", "en")
+                original_query = processed.get("normalized_query", query)
+
+                # For CLIR: Always translate to the OTHER language
+                if cross_lingual:
+                    other_lang = "bn" if source_lang == "en" else "en"
+                    logger.warning(
+                        f"🌐 CLIR ENABLED: Detected {source_lang}, will translate to {other_lang}"
+                    )
+                    processed_with_translation = process_complete_query(
+                        query, target_lang=other_lang
+                    )
+                    translated_query = processed_with_translation.get(
+                        "translated_query"
+                    )
+                    if translated_query and translated_query.strip():
+                        logger.warning(
+                            f"✓ CLIR Translation: '{original_query}' ({source_lang}) -> '{translated_query}' ({other_lang})"
+                        )
+                    else:
+                        logger.warning(
+                            f"✗ CLIR Translation FAILED - translated_query is empty or None"
+                        )
+                        translated_query = None
+
             except Exception as e:
-                logger.warning(f"Query preprocessing failed: {e}, using original query")
-                search_query = query
+                logger.warning(f"Query preprocessing failed: {e}")
+                original_query = query
 
         # Collect scores from each method
         bm25_scores = {}
         semantic_scores = {}
         fuzzy_scores = {}
 
-        # BM25 retrieval
+        # === BM25: Search with BOTH queries for true CLIR ===
         if use_bm25 and self.bm25_index is not None:
             try:
-                bm25_results = self.bm25_index.get_normalized_scores(
-                    search_query,
-                    top_k=top_k * 2,
-                    preprocess=False,  # Already preprocessed
+                # Search with original query
+                bm25_results_original = self.bm25_index.get_normalized_scores(
+                    original_query, top_k * 2, False
                 )
-                for r in bm25_results:
-                    bm25_scores[r["doc_id"]] = r.get("score_normalized", r["score"])
-                logger.debug(f"BM25: {len(bm25_results)} results")
-            except Exception as e:
-                logger.warning(f"BM25 retrieval failed: {e}")
+                for r in bm25_results_original:
+                    doc_id = r["doc_id"]
+                    score = r.get("score_normalized", r["score"])
+                    bm25_scores[doc_id] = max(bm25_scores.get(doc_id, 0), score)
 
-        # Semantic retrieval
+                logger.warning(
+                    f"BM25 original query '{original_query}': {len(bm25_results_original)} results"
+                )
+
+                # CLIR: Also search with translated query
+                if cross_lingual and translated_query:
+                    logger.warning(
+                        f"BM25 searching with translated query: '{translated_query}'"
+                    )
+                    bm25_results_translated = self.bm25_index.get_normalized_scores(
+                        translated_query, top_k * 2, False
+                    )
+                    logger.warning(
+                        f"BM25 translated query results: {len(bm25_results_translated)} docs"
+                    )
+                    for r in bm25_results_translated:
+                        doc_id = r["doc_id"]
+                        score = r.get("score_normalized", r["score"])
+                        # Take max score from either query
+                        bm25_scores[doc_id] = max(bm25_scores.get(doc_id, 0), score)
+                else:
+                    logger.warning(
+                        f"BM25 skipped translated query: cross_lingual={cross_lingual}, translated_query={'None' if not translated_query else 'exists'}"
+                    )
+
+                logger.warning(
+                    f"BM25 TOTAL: {len(bm25_scores)} unique candidates from dual-query search"
+                )
+            except Exception as e:
+                logger.warning(f"BM25 failed: {e}")
+
+        # === Semantic: Multilingual embeddings handle cross-lingual naturally ===
+        # But we can boost by searching with both queries
         if use_semantic and self.semantic_index is not None:
             try:
+                # Semantic search with original query
                 semantic_results = self.semantic_index.search(
-                    search_query,
-                    top_k=top_k * 2,
-                    preprocess=False,  # Already preprocessed
+                    original_query, top_k * 2, 0.0, False
                 )
                 for r in semantic_results:
-                    semantic_scores[r["doc_id"]] = r.get("score_normalized", r["score"])
-                logger.debug(f"Semantic: {len(semantic_results)} results")
-            except Exception as e:
-                logger.warning(f"Semantic retrieval failed: {e}")
+                    doc_id = r["doc_id"]
+                    score = r.get("score_normalized", r["score"])
+                    semantic_scores[doc_id] = max(semantic_scores.get(doc_id, 0), score)
 
-        # Fuzzy retrieval
-        if use_fuzzy:
+                # CLIR: Also search with translated query for better coverage
+                if cross_lingual and translated_query:
+                    semantic_results_translated = self.semantic_index.search(
+                        translated_query, top_k * 2, 0.0, False
+                    )
+                    for r in semantic_results_translated:
+                        doc_id = r["doc_id"]
+                        score = r.get("score_normalized", r["score"])
+                        # Boost if found by both queries
+                        if doc_id in semantic_scores:
+                            semantic_scores[doc_id] = min(
+                                1.0, semantic_scores[doc_id] * 1.2
+                            )
+                        else:
+                            semantic_scores[doc_id] = score
+
+                logger.info(f"Semantic: {len(semantic_scores)} candidates")
+            except Exception as e:
+                logger.warning(f"Semantic failed: {e}")
+
+        # === Fuzzy: Search with both queries ===
+        if use_fuzzy and self.fuzzy_matcher is not None:
             try:
-                if self.fuzzy_matcher is not None:
-                    fuzzy_results = self.fuzzy_matcher.search(
-                        search_query, top_k=top_k * 2
-                    )
-                elif self.documents is not None:
-                    from fuzzy_retrieval import retrieve_fuzzy
-
-                    fuzzy_results = retrieve_fuzzy(
-                        search_query,
-                        self.documents,
-                        text_field="title",
-                        top_k=top_k * 2,
-                    )
-                else:
-                    fuzzy_results = []
-
+                fuzzy_results = self.fuzzy_matcher.search(original_query, top_k * 2)
                 for r in fuzzy_results:
-                    fuzzy_scores[r["doc_id"]] = r.get("score_normalized", r["score"])
-                logger.debug(f"Fuzzy: {len(fuzzy_results)} results")
+                    doc_id = r["doc_id"]
+                    score = r.get("score_normalized", r["score"])
+                    fuzzy_scores[doc_id] = max(fuzzy_scores.get(doc_id, 0), score)
+
+                if cross_lingual and translated_query:
+                    fuzzy_results_translated = self.fuzzy_matcher.search(
+                        translated_query, top_k * 2
+                    )
+                    for r in fuzzy_results_translated:
+                        doc_id = r["doc_id"]
+                        score = r.get("score_normalized", r["score"])
+                        fuzzy_scores[doc_id] = max(fuzzy_scores.get(doc_id, 0), score)
             except Exception as e:
-                logger.warning(f"Fuzzy retrieval failed: {e}")
+                logger.warning(f"Fuzzy failed: {e}")
 
         # Get all candidate documents
         all_doc_ids = (
@@ -357,27 +370,16 @@ class HybridRetriever:
         semantic_score: float,
         fuzzy_score: float,
     ) -> Tuple[str, List[str]]:
-        """
-        Assess confidence level and generate warnings.
-
-        Args:
-            final_score: Fused score
-            bm25_score: BM25 component score
-            semantic_score: Semantic component score
-            fuzzy_score: Fuzzy component score
-
-        Returns:
-            Tuple of (confidence_level, list_of_warnings)
-        """
+        """Assess confidence level and generate warnings."""
         warnings = []
 
         # Very low overall score
         if final_score < VERY_LOW_CONFIDENCE_THRESHOLD:
-            warnings.append(f"Very low relevance score ({final_score:.3f})")
+            warnings.append(f"Very low relevance ({final_score:.3f})")
             return "very_low", warnings
 
         if final_score < LOW_CONFIDENCE_THRESHOLD:
-            warnings.append(f"Low relevance score ({final_score:.3f})")
+            warnings.append(f"Low relevance ({final_score:.3f})")
 
         # Check for conflicting signals
         active_scores = [s for s in [bm25_score, semantic_score, fuzzy_score] if s > 0]
@@ -385,27 +387,23 @@ class HybridRetriever:
         if len(active_scores) >= 2:
             max_score = max(active_scores)
             min_score = min(active_scores)
-
             if max_score - min_score > 0.5:
-                warnings.append("Conflicting relevance signals from different methods")
+                warnings.append("Conflicting relevance signals")
 
-        # Only one method returned results
+        # Check lexical overlap ONLY when BM25 enabled but zero score
+        # (BM25=0 + Semantic>0 means truly no keyword overlap)
         if len(active_scores) == 1:
             if semantic_score > 0 and bm25_score == 0:
-                warnings.append(
-                    "Match based on semantic similarity only (no lexical overlap)"
-                )
+                # Only warn if BM25 was actually attempted (index exists)
+                warnings.append("Semantic match only (no keyword overlap)")
             elif bm25_score > 0 and semantic_score == 0:
-                warnings.append(
-                    "Match based on keyword only (semantic model unavailable)"
-                )
+                warnings.append("Keyword match only (semantic unavailable)")
 
-        # Determine confidence level
-        if warnings:
-            if len(warnings) > 1 or final_score < LOW_CONFIDENCE_THRESHOLD:
-                return "low", warnings
+        # Confidence level
+        if len(warnings) > 1 or final_score < LOW_CONFIDENCE_THRESHOLD:
+            return "low", warnings
+        elif warnings:
             return "medium", warnings
-
         return "high", []
 
     def search_with_analysis(self, query: str, top_k: int = 10) -> Dict[str, Any]:
@@ -562,20 +560,6 @@ if __name__ == "__main__":
         description="Hybrid Retrieval for CLIR",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Search with existing indexes
-  python hybrid_retrieval.py "climate change" \\
-      --bm25-index indexes/bm25_index.pkl \\
-      --semantic-index indexes/semantic
-  
-  # Build and search
-  python hybrid_retrieval.py "climate change" \\
-      --data data/documents.json --build
-  
-  # Custom weights
-  python hybrid_retrieval.py "climate" \\
-      --data data/documents.json --build \\
-      --weights 0.2 0.6 0.2
         """,
     )
 

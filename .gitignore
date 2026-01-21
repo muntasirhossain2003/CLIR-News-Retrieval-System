@@ -18,3 +18,4 @@ indexes/
 models/
 *.npy
 *.bin
+.github

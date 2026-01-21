@@ -19,6 +19,7 @@ numpy>=1.26.0
 
 # Module B: Query Processing
 googletrans==4.0.0-rc1
+deep-translator>=1.11.4
 
 # Module C: Retrieval Models
 rank-bm25==0.2.2
@@ -26,3 +27,4 @@ faiss-cpu>=1.7.4
 # sentence-transformers (already above) - uses mE5-large-instruct model
 # scikit-learn (already above) - for TF-IDF
 # numpy (already above) - for embeddings
+streamlit==1.24.1

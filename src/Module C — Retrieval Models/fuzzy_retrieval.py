@@ -1,49 +1,5 @@
 """
-Module C - Model 2: Fuzzy + Transliteration Matching
-
-This module implements string-level similarity matching for handling:
-- Spelling variations ("colour" vs "color")
-- Typos ("clmate" vs "climate")
-- Cross-script matching (English ↔ বাংলা)
-- Transliteration variants ("Dhaka" vs "ঢাকা")
-
-WHY FUZZY MATCHING FOR CLIR?
------------------------------
-- Handles spelling variations that lexical models miss
-- Useful for proper nouns with multiple spellings
-- Helps with user typos in queries
-- Bridges English and Bangla through transliteration
-
-FUZZY MATCHING METHODS:
------------------------
-1. Levenshtein Distance (Edit Distance)
-   - Counts minimum edits (insert/delete/replace) to transform one string to another
-   - "cat" -> "car" = 1 edit (replace 't' with 'r')
-
-2. Sequence Matcher (difflib)
-   - Finds longest contiguous matching subsequences
-   - Better for longer strings with similar structures
-
-3. Character N-gram Jaccard Similarity
-   - Compares sets of character n-grams
-   - "climate" -> {"cli", "lim", "ima", "mat", "ate"}
-   - Robust to word reordering
-
-TRANSLITERATION:
-----------------
-- Converts script while preserving pronunciation
-- "Dhaka" (English) ↔ "ঢাকা" (Bangla)
-- Uses phonetic mapping between scripts
-
-FAILURE CASES:
---------------
-- SEMANTIC SIMILARITY: Fuzzy matching fails for meaning-based similarity
-  - "car" and "automobile" have low string similarity but same meaning
-
-- LONG TEXTS: Edit distance becomes unreliable for full documents
-  - Best used for titles, keywords, entity names
-
-- SCRIPT NORMALIZATION: Some characters may not have exact transliterations
+Module C - Model 2: Fuzzy + Transliteration Matchings
 """
 
 import logging
@@ -147,18 +103,6 @@ ENGLISH_TO_BANGLA = {v: k for k, v in COMMON_TRANSLITERATIONS.items()}
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:
-    """
-    Calculate Levenshtein (edit) distance between two strings.
-
-    Uses dynamic programming for O(mn) time complexity.
-
-    Args:
-        s1: First string
-        s2: Second string
-
-    Returns:
-        Minimum number of edits to transform s1 to s2
-    """
     if len(s1) < len(s2):
         return levenshtein_distance(s2, s1)
 
@@ -180,18 +124,6 @@ def levenshtein_distance(s1: str, s2: str) -> int:
 
 
 def levenshtein_similarity(s1: str, s2: str) -> float:
-    """
-    Calculate normalized Levenshtein similarity in [0, 1].
-
-    Formula: 1 - (edit_distance / max_length)
-
-    Args:
-        s1: First string
-        s2: Second string
-
-    Returns:
-        Similarity score in [0, 1] (1 = identical)
-    """
     if not s1 and not s2:
         return 1.0
     if not s1 or not s2:
@@ -204,18 +136,7 @@ def levenshtein_similarity(s1: str, s2: str) -> float:
 
 
 def sequence_matcher_similarity(s1: str, s2: str) -> float:
-    """
-    Calculate similarity using difflib's SequenceMatcher.
 
-    Finds longest contiguous matching subsequences.
-
-    Args:
-        s1: First string
-        s2: Second string
-
-    Returns:
-        Similarity ratio in [0, 1]
-    """
     from difflib import SequenceMatcher
 
     if not s1 and not s2:
@@ -227,19 +148,6 @@ def sequence_matcher_similarity(s1: str, s2: str) -> float:
 
 
 def ngram_jaccard_similarity(s1: str, s2: str, n: int = 3) -> float:
-    """
-    Calculate character n-gram Jaccard similarity.
-
-    Jaccard = |intersection| / |union|
-
-    Args:
-        s1: First string
-        s2: Second string
-        n: N-gram size (default: 3 for trigrams)
-
-    Returns:
-        Jaccard similarity in [0, 1]
-    """
     if not s1 and not s2:
         return 1.0
     if not s1 or not s2:
@@ -261,21 +169,6 @@ def ngram_jaccard_similarity(s1: str, s2: str, n: int = 3) -> float:
 
 
 def fuzzy_match(query: str, target: str, method: str = "combined") -> float:
-    """
-    Calculate fuzzy match score between query and target.
-
-    Args:
-        query: Query string
-        target: Target string to match against
-        method: Matching method
-            - "levenshtein": Edit distance based
-            - "sequence": SequenceMatcher based
-            - "ngram": Character n-gram Jaccard
-            - "combined": Average of all methods (default)
-
-    Returns:
-        Similarity score in [0, 1]
-    """
     if method == "levenshtein":
         return levenshtein_similarity(query, target)
     elif method == "sequence":
@@ -294,15 +187,7 @@ def fuzzy_match(query: str, target: str, method: str = "combined") -> float:
 
 
 def transliterate_bangla_to_english(text: str) -> str:
-    """
-    Transliterate Bangla text to English phonetics.
 
-    Args:
-        text: Bangla text
-
-    Returns:
-        Phonetic English representation
-    """
     # Check for common known mappings first
     text_lower = text.lower()
     if text_lower in ENGLISH_TO_BANGLA:

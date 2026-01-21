@@ -56,7 +56,10 @@ class LexicalIndexer:
                 analyzer=StandardAnalyzer(),
                 field_boost=2.0,  # Boost title matches
             ),
-            body=fields.TEXT(analyzer=StemmingAnalyzer()),
+            # Use StandardAnalyzer (whitespace + regex) instead of StemmingAnalyzer
+            # StemmingAnalyzer applies English stemming rules which corrupts Bangla words
+            # StandardAnalyzer works well for both English and Bangla (using whitespace tokenization)
+            body=fields.TEXT(analyzer=StandardAnalyzer()),
             language=fields.KEYWORD(stored=True),
             source=fields.KEYWORD(stored=True),
             date=fields.DATETIME(stored=True),

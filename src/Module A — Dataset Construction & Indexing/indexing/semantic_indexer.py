@@ -1,11 +1,3 @@
-"""
-Semantic Indexer using Sentence Transformers and FAISS
-
-Creates dense vector representations for semantic similarity search.
-Uses multilingual embeddings for cross-lingual retrieval.
-FAISS is used for efficient similarity search.
-"""
-
 import os
 import json
 import numpy as np
@@ -25,20 +17,15 @@ except ImportError:
     logger.warning("FAISS not installed. Install with: pip install faiss-cpu")
 
 
-class SemanticIndexer:
-    """
-    Semantic index using multilingual sentence embeddings and FAISS.
-    Supports cross-lingual similarity search with cosine distance.
+# Best multilingual model for CLIR (Cross-Lingual Information Retrieval)
+DEFAULT_MODEL = "intfloat/multilingual-e5-large-instruct"
 
-    Index Format (saved to disk):
-    - embeddings.npy: Document embeddings matrix
-    - doc_ids.json: List of document identifiers
-    - metadata.json: Index configuration
-    """
+
+class SemanticIndexer:
 
     def __init__(
         self,
-        model_name: str = "paraphrase-multilingual-MiniLM-L12-v2",
+        model_name: str = DEFAULT_MODEL,
         index_dir: str = "indexes/semantic",
     ):
         """
@@ -119,8 +106,12 @@ class SemanticIndexer:
             body = doc.get("body", "")
 
             # Truncate body to avoid exceeding model's max length
-            # Most sentence transformers have 512 token limit
+            # mE5-large-instruct has 512 token limit
             combined = f"{title} {body}"[:2000]  # ~500 tokens
+
+            # mE5-instruct models require "passage: " prefix for documents
+            if "e5" in self.model_name.lower():
+                combined = f"passage: {combined}"
 
             texts.append(combined)
             self.doc_ids.append(doc["doc_id"])

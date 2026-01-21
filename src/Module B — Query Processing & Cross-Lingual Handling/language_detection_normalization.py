@@ -1,8 +1,5 @@
 """
 Module B - Language Detection & Normalization
-
-This module provides query language detection and text normalization.
-Designed to be simple and explainable for academic purposes.
 """
 
 import unicodedata
@@ -12,16 +9,6 @@ import os
 def detect_query_language(query: str) -> str:
     """
     Detect whether the query is Bangla ('bn') or English ('en').
-
-    Uses two methods:
-    1. fastText language identification (if model available)
-    2. Unicode-range fallback for Bangla characters
-
-    Args:
-        query: User's search query string
-
-    Returns:
-        'bn' for Bangla or 'en' for English
     """
     if not query or not query.strip():
         return "en"  # Default to English for empty queries
@@ -68,23 +55,6 @@ def detect_query_language(query: str) -> str:
 def normalize_query(query: str, lang: str) -> str:
     """
     Normalize the query text based on language.
-
-    Steps:
-    1. Trim leading/trailing whitespace
-    2. Normalize Unicode to NFC form (canonical composition)
-    3. Lowercase ONLY if English (preserve Bangla case)
-
-    Does NOT remove:
-    - Stopwords (needed for semantic search)
-    - Punctuation (may be significant)
-    - Numbers (could be dates, IDs, etc.)
-
-    Args:
-        query: Input query string
-        lang: Language code ('bn' or 'en')
-
-    Returns:
-        Normalized query string
     """
     if not query:
         return ""
@@ -107,33 +77,7 @@ def normalize_query(query: str, lang: str) -> str:
 
 def process_query(query: str) -> dict:
     """
-    Process a user query: detect language and normalize.
-
-    This is the main entry point for language detection and normalization.
-
-    Args:
-        query: Raw user input query
-
-    Returns:
-        Dictionary containing:
-        - original_query: The input query as-is
-        - language: Detected language ('bn' or 'en')
-        - normalized_query: Processed query ready for retrieval
-
-    Example:
-        >>> process_query("  Climate Change  ")
-        {
-            'original_query': '  Climate Change  ',
-            'language': 'en',
-            'normalized_query': 'climate change'
-        }
-
-        >>> process_query("জলবায়ু পরিবর্তন")
-        {
-            'original_query': 'জলবায়ু পরিবর্তন',
-            'language': 'bn',
-            'normalized_query': 'জলবায়ু পরিবর্তন'
-        }
+    Process the query: detect language and normalize.
     """
     # Handle edge cases
     if query is None:

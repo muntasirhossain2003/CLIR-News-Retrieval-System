@@ -1,37 +1,6 @@
 """
 Module C - Model 1B: TF-IDF Lexical Retrieval
 
-This module implements TF-IDF (Term Frequency-Inverse Document Frequency) retrieval.
-Included for comparison with BM25 to demonstrate ranking differences.
-
-TF-IDF vs BM25 COMPARISON:
---------------------------
-- TF-IDF: Linear term frequency weighting
-- BM25: Saturating term frequency (diminishing returns for repeated terms)
-
-TF-IDF Formula:
-  tfidf(t, d) = tf(t, d) * log(N / df(t))
-
-Where:
-  tf(t, d) = frequency of term t in document d
-  N = total number of documents
-  df(t) = number of documents containing term t
-
-WHEN TF-IDF BEATS BM25:
------------------------
-- Very short queries (1-2 terms)
-- When term frequency isn't inflated (academic papers, news articles)
-
-WHEN BM25 BEATS TF-IDF:
------------------------
-- Longer queries
-- Documents with repetitive terms (spam-like content)
-- Collections with varying document lengths
-
-SAME FAILURE CASES AS BM25:
----------------------------
-- Synonyms, paraphrases, cross-lingual, cross-script
-- All lexical models share vocabulary mismatch problems
 """
 
 import logging
@@ -102,6 +71,28 @@ class TFIDFIndex:
         self.max_df = max_df
         self._is_built = False
 
+    def _tokenize(self, text: str) -> List[str]:
+        """
+        Tokenize text with Bangla support (same as BM25 for consistency).
+        """
+        if not text:
+            return []
+
+        import re
+
+        # Detect if text contains Bangla (Unicode range U+0980 to U+09FF)
+        has_bangla = bool(re.search(r"[\u0980-\u09ff]", text))
+
+        if has_bangla:
+            # Bangla tokenization: preserve Unicode, split on whitespace
+            tokens = re.findall(r"[\w\u0980-\u09ff]+", text)
+        else:
+            # English tokenization: lowercase + word boundaries
+            text = text.lower()
+            tokens = re.findall(r"\b[\w-]+\b", text)
+
+        return tokens
+
     def build(
         self, documents: List[Dict[str, Any]], text_field: str = "content"
     ) -> None:
@@ -142,13 +133,14 @@ class TFIDFIndex:
             texts.append(text)
 
         # Build TF-IDF vectorizer and matrix
+        # Use custom tokenizer for Bangla support
         self.vectorizer = TfidfVectorizer(
             max_features=self.max_features,
             ngram_range=self.ngram_range,
             min_df=self.min_df,
             max_df=self.max_df,
-            lowercase=True,
-            token_pattern=r"\b[\w-]+\b",  # Keep hyphens for terms like COVID-19
+            tokenizer=self._tokenize,  # Use custom Bangla-aware tokenizer
+            lowercase=False,  # Don't lowercase (handled in tokenizer)
         )
 
         self.tfidf_matrix = self.vectorizer.fit_transform(texts)

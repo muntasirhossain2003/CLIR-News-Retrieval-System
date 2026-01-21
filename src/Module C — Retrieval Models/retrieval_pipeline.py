@@ -1,19 +1,5 @@
 """
 Module C - Retrieval Pipeline (Gateway)
-
-This is the main entry point for the retrieval system.
-Orchestrates all retrieval models and provides a unified interface.
-
-Usage:
-    from retrieval_pipeline import RetrievalPipeline
-
-    pipeline = RetrievalPipeline()
-    pipeline.build_indexes(documents)
-    results = pipeline.search("climate change", method="hybrid")
-
-Command Line:
-    python retrieval_pipeline.py "climate change" --method hybrid
-    python retrieval_pipeline.py "জলবায়ু পরিবর্তন" --method semantic --top-k 20
 """
 
 import os
@@ -74,30 +60,38 @@ def get_document_title(doc_id: str) -> str:
     return doc_info.get("title", doc_id)
 
 
-# Import retrieval modules
+# Import retrieval modules from Module A (unified indexing)
+MODULE_A_PATH = os.path.join(
+    PROJECT_ROOT, "src", "Module A — Dataset Construction & Indexing", "indexing"
+)
+if os.path.exists(MODULE_A_PATH):
+    sys.path.insert(0, MODULE_A_PATH)
+
+# Use Module A's WHOOSH and FAISS instead of duplicate BM25/TF-IDF pickles
 try:
-    from bm25_retrieval import BM25Index, build_bm25_index, retrieve_bm25
-except ImportError:
+    from whoosh_retrieval import WHOOSHRetrieval as BM25Index
+
+    logger.info("✓ Using WHOOSH for lexical retrieval (Module A)")
+except ImportError as e:
+    logger.warning(f"WHOOSH retrieval not available: {e}")
     BM25Index = None
-    logger.warning("BM25 retrieval module not available")
 
 try:
-    from tfidf_retrieval import TFIDFIndex, build_tfidf_index, retrieve_tfidf
-except ImportError:
-    TFIDFIndex = None
-    logger.warning("TF-IDF retrieval module not available")
+    from faiss_retrieval import FAISSRetrieval as SemanticIndex
+
+    logger.info("✓ Using FAISS for semantic retrieval (Module A)")
+except ImportError as e:
+    logger.warning(f"FAISS retrieval not available: {e}")
+    SemanticIndex = None
+
+# Keep TF-IDF and Fuzzy for backward compatibility (optional)
+TFIDFIndex = None  # Deprecated - WHOOSH replaces this
 
 try:
     from fuzzy_retrieval import FuzzyMatcher, retrieve_fuzzy, fuzzy_match
 except ImportError:
     FuzzyMatcher = None
     logger.warning("Fuzzy retrieval module not available")
-
-try:
-    from semantic_retrieval import SemanticIndex, retrieve_semantic
-except ImportError:
-    SemanticIndex = None
-    logger.warning("Semantic retrieval module not available")
 
 try:
     from hybrid_retrieval import HybridRetriever, create_hybrid_retriever
@@ -155,60 +149,9 @@ class SearchResult:
 
 
 class RetrievalPipeline:
-    """
-    Unified Retrieval Pipeline for CLIR System.
+    """Retrieval Pipeline orchestrating multiple retrieval models."""
 
-    Provides:
-    - Multiple retrieval methods (BM25, TF-IDF, Semantic, Fuzzy, Hybrid)
-    - Query preprocessing integration with Module B
-    - Index building and persistence
-    - Method comparison and analysis
-
-    Architecture:
-
-        User Query
-            │
-            ▼
-    ┌───────────────────┐
-    │  Query Processing │  (Module B - optional)
-    │  - Language detect│
-    │  - Normalization  │
-    │  - Translation    │
-    └────────┬──────────┘
-             │
-             ▼
-    ┌───────────────────┐
-    │ Retrieval Models  │
-    │                   │
-    │  ┌─────┐ ┌─────┐  │
-    │  │BM25 │ │TFIDF│  │  Lexical
-    │  └─────┘ └─────┘  │
-    │                   │
-    │  ┌─────────────┐  │
-    │  │  Semantic   │  │  Dense vectors
-    │  │ (mE5-large) │  │
-    │  └─────────────┘  │
-    │                   │
-    │  ┌─────────────┐  │
-    │  │   Fuzzy +   │  │  Cross-script
-    │  │Transliterate│  │
-    │  └─────────────┘  │
-    │                   │
-    │  ┌─────────────┐  │
-    │  │   Hybrid    │  │  Score fusion
-    │  │  (Combined) │  │
-    │  └─────────────┘  │
-    └────────┬──────────┘
-             │
-             ▼
-    ┌───────────────────┐
-    │  Ranked Results   │
-    │  with confidence  │
-    │  scores & warnings│
-    └───────────────────┘
-    """
-
-    SUPPORTED_METHODS = ["bm25", "tfidf", "semantic", "fuzzy", "hybrid", "all"]
+    SUPPORTED_METHODS = ["whoosh", "semantic", "fuzzy", "hybrid", "all"]
 
     def __init__(
         self,
@@ -220,7 +163,7 @@ class RetrievalPipeline:
         Initialize retrieval pipeline.
 
         Args:
-            index_dir: Directory for storing/loading indexes
+            index_dir: Base directory for indexes
             use_query_processing: Whether to use Module B for query preprocessing
             hybrid_weights: Custom weights for hybrid retrieval
         """
@@ -228,10 +171,10 @@ class RetrievalPipeline:
         self.use_query_processing = use_query_processing and MODULE_B_AVAILABLE
         self.hybrid_weights = hybrid_weights
 
-        # Index instances (lazy loaded)
-        self.bm25_index = None
-        self.tfidf_index = None
-        self.semantic_index = None
+        # Index instances (lazy loaded) - Using Module A's indexes
+        self.bm25_index = None  # WHOOSH
+        self.tfidf_index = None  # Deprecated
+        self.semantic_index = None  # FAISS
         self.fuzzy_matcher = None
         self.hybrid_retriever = None
 
@@ -242,6 +185,7 @@ class RetrievalPipeline:
         os.makedirs(index_dir, exist_ok=True)
 
         logger.info(f"RetrievalPipeline initialized (index_dir={index_dir})")
+        logger.info("Using Module A indexes: WHOOSH (lexical) + FAISS (semantic)")
         if self.use_query_processing:
             logger.info("Query preprocessing enabled (Module B)")
 
@@ -307,7 +251,7 @@ class RetrievalPipeline:
                 logger.error(f"TF-IDF build failed: {e}")
                 status["tfidf"] = False
 
-        # Semantic Index (must be pre-built using module1)
+        # Semantic Index
         if build_semantic and SemanticIndex is not None:
             try:
                 logger.info("Loading semantic index from disk...")
@@ -355,57 +299,47 @@ class RetrievalPipeline:
 
     def load_indexes(
         self,
-        load_bm25: bool = True,
-        load_tfidf: bool = True,
+        load_whoosh: bool = True,
         load_semantic: bool = True,
     ) -> Dict[str, bool]:
         """
-        Load indexes from disk.
+        Load indexes from disk (Module A's WHOOSH and FAISS).
 
         Args:
-            load_bm25: Load BM25 index
-            load_tfidf: Load TF-IDF index
-            load_semantic: Load semantic index
+            load_whoosh: Load WHOOSH lexical index
+            load_semantic: Load FAISS semantic index
 
         Returns:
             Dictionary of load status for each index type
         """
         status = {}
 
-        # BM25
-        if load_bm25 and BM25Index is not None:
+        # WHOOSH (replaces BM25/TF-IDF)
+        if load_whoosh and BM25Index is not None:
             try:
                 self.bm25_index = BM25Index()
-                path = os.path.join(self.index_dir, "bm25_index.pkl")
-                status["bm25"] = self.bm25_index.load(path)
+                whoosh_path = os.path.join(self.index_dir, "whoosh")
+                status["whoosh"] = self.bm25_index.load(whoosh_path)
+                status["bm25"] = status["whoosh"]  # Alias for backward compatibility
             except Exception as e:
-                logger.error(f"BM25 load failed: {e}")
+                logger.error(f"WHOOSH load failed: {e}")
+                status["whoosh"] = False
                 status["bm25"] = False
 
-        # TF-IDF
-        if load_tfidf and TFIDFIndex is not None:
-            try:
-                self.tfidf_index = TFIDFIndex()
-                path = os.path.join(self.index_dir, "tfidf_index.pkl")
-                status["tfidf"] = self.tfidf_index.load(path)
-            except Exception as e:
-                logger.error(f"TF-IDF load failed: {e}")
-                status["tfidf"] = False
-
-        # Semantic
+        # FAISS Semantic
         if load_semantic and SemanticIndex is not None:
             try:
                 self.semantic_index = SemanticIndex()
-                path = os.path.join(self.index_dir, "semantic")
-                status["semantic"] = self.semantic_index.load(path)
+                semantic_path = os.path.join(self.index_dir, "semantic")
+                status["semantic"] = self.semantic_index.load(semantic_path)
             except Exception as e:
-                logger.error(f"Semantic load failed: {e}")
+                logger.error(f"FAISS load failed: {e}")
                 status["semantic"] = False
 
         # Initialize hybrid retriever with loaded indexes
         if HybridRetriever is not None:
             self.hybrid_retriever = HybridRetriever(
-                bm25_index=self.bm25_index if status.get("bm25") else None,
+                bm25_index=self.bm25_index if status.get("whoosh") else None,
                 semantic_index=self.semantic_index if status.get("semantic") else None,
                 fuzzy_matcher=self.fuzzy_matcher,
                 weights=self.hybrid_weights,
@@ -527,58 +461,84 @@ class RetrievalPipeline:
         by the search() method before calling this function.
         """
 
+        # Map old method names to new ones
         if method == "bm25":
+            method = "whoosh"
+
+        if method == "whoosh":
             if self.bm25_index is None:
-                logger.warning("BM25 index not available")
+                logger.warning("WHOOSH index not available")
                 return []
             results = self.bm25_index.get_normalized_scores(
                 query, top_k=top_k, preprocess=preprocess, target_lang=target_lang
             )
-            return [self._format_result(r, "bm25") for r in results]
+            return [self._format_result(r, "whoosh") for r in results]
 
         elif method == "tfidf":
-            if self.tfidf_index is None:
-                logger.warning("TF-IDF index not available")
-                return []
-            results = self.tfidf_index.search(
-                query, top_k=top_k, preprocess=preprocess, target_lang=target_lang
+            # TF-IDF deprecated - redirect to WHOOSH
+            logger.info("TF-IDF deprecated, using WHOOSH instead")
+            return self._search_single_method(
+                query, "whoosh", top_k, preprocess, target_lang
             )
-            return [self._format_result(r, "tfidf") for r in results]
 
         elif method == "semantic":
             if self.semantic_index is None:
-                logger.warning("Semantic index not available")
+                logger.warning("FAISS semantic index not available")
                 return []
             results = self.semantic_index.search(
-                query, top_k=top_k, preprocess=preprocess, target_lang=target_lang
+                query, top_k=top_k, min_score=0.0, preprocess=preprocess
             )
             return [self._format_result(r, "semantic") for r in results]
-
-        elif method == "fuzzy":
-            if self.fuzzy_matcher is not None:
-                results = self.fuzzy_matcher.search(query, top_k=top_k)
-            elif self.documents is not None:
-                results = retrieve_fuzzy(query, self.documents, top_k=top_k)
-            else:
-                logger.warning("Fuzzy matcher not available")
-                return []
-            return [self._format_result(r, "fuzzy") for r in results]
 
         elif method == "hybrid":
             if self.hybrid_retriever is None:
                 logger.warning("Hybrid retriever not available")
                 return []
+            # For hybrid/CLIR: Pass original query and let hybrid do its own
+            # preprocessing + translation for dual-query cross-lingual search
             results = self.hybrid_retriever.search(
-                query, top_k=top_k, preprocess=preprocess, target_lang=target_lang
+                query,
+                top_k=top_k,
+                preprocess=True,
+                target_lang=target_lang,
+                cross_lingual=True,  # Enable true CLIR dual-query search
             )
-            return [r.to_dict() for r in results]
+
+            # Inject metadata for hybrid results
+            output_results = []
+            metadata_cache = _load_document_metadata()
+
+            for r in results:
+                r_dict = r.to_dict()
+                doc_id = r_dict.get("doc_id")
+
+                # Inject metadata if missing
+                if not r_dict.get("metadata") and doc_id in metadata_cache:
+                    r_dict["metadata"] = metadata_cache[doc_id]
+
+                # Normalize keys for frontend (frontend expects 'score')
+                if "score" not in r_dict:
+                    r_dict["score"] = r_dict.get("final_score", 0.0)
+
+                output_results.append(r_dict)
+
+            return output_results
 
         return []
 
     def _format_result(self, result: Dict, method: str) -> Dict[str, Any]:
         """Format result to standard structure."""
+        doc_id = result.get("doc_id", "")
+        metadata = result.get("metadata", {})
+
+        # Inject metadata if missing
+        if not metadata:
+            metadata_cache = _load_document_metadata()
+            if doc_id in metadata_cache:
+                metadata = metadata_cache[doc_id]
+
         return {
-            "doc_id": result.get("doc_id", ""),
+            "doc_id": doc_id,
             "score": result.get("score_normalized", result.get("score", 0)),
             "rank": result.get("rank", 0),
             "method": method,
@@ -587,7 +547,7 @@ class RetrievalPipeline:
             "scores_breakdown": {
                 method: result.get("score_normalized", result.get("score", 0))
             },
-            "metadata": result.get("metadata", {}),
+            "metadata": metadata,
         }
 
     def compare_methods(self, query: str, top_k: int = 10) -> Dict[str, Any]:
@@ -639,9 +599,8 @@ class RetrievalPipeline:
         available = []
 
         if self.bm25_index is not None:
-            available.append("bm25")
-        if self.tfidf_index is not None:
-            available.append("tfidf")
+            available.append("whoosh")
+            available.append("bm25")  # Alias
         if self.semantic_index is not None:
             available.append("semantic")
         if self.fuzzy_matcher is not None or self.documents is not None:
@@ -650,6 +609,54 @@ class RetrievalPipeline:
             available.append("hybrid")
 
         return available
+
+    def warm_models(self):
+        """Pre-load models to avoid delay on first query (80% faster first query)."""
+        logger.info("Warming up models...")
+
+        # Warm semantic model if available
+        if self.semantic_index and self.semantic_index.model_name:
+            try:
+                from semantic_retrieval import warm_model
+
+                warm_model(self.semantic_index.model_name)
+                logger.info("✓ Semantic model warmed")
+            except Exception as e:
+                logger.warning(f"Failed to warm semantic model: {e}")
+
+        # Warm NER models if Module B available
+        if MODULE_B_AVAILABLE:
+            try:
+                from named_entity_extraction import extract_query_entities
+
+                # Trigger model loading
+                extract_query_entities("test", "en")
+                extract_query_entities("পরীক্ষা", "bn")
+                logger.info("✓ NER models warmed")
+            except Exception as e:
+                logger.warning(f"Failed to warm NER models: {e}")
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache performance statistics (hits/misses/hit_rate)."""
+        stats = {}
+
+        # Embedding cache stats
+        try:
+            from semantic_retrieval import get_cache_stats
+
+            stats["embedding_cache"] = get_cache_stats()
+        except Exception:
+            stats["embedding_cache"] = "unavailable"
+
+        # Translation cache stats
+        try:
+            from query_translation import get_cache_stats as get_trans_stats
+
+            stats["translation_cache"] = get_trans_stats()
+        except Exception:
+            stats["translation_cache"] = "unavailable"
+
+        return stats
 
 
 def main():

@@ -1,113 +1,133 @@
 """
-Module B - Query Translation
-
-This module provides cross-lingual query translation for CLIR.
-Enables searching in one language while retrieving documents in another.
+Query Translation for Cross-Lingual Information Retrieval.
 """
 
 import logging
+import time
 
-# Set up logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+# Translation cache (LRU with TTL)
+class TranslationCache:
+    def __init__(self, max_size=5000, ttl=3600):
+        self.cache = {}
+        self.max_size = max_size
+        self.ttl = ttl  # seconds
+        self.hits = 0
+        self.misses = 0
+
+    def get(self, text, src, tgt):
+        key = f"{text}|{src}|{tgt}"
+        if key in self.cache:
+            entry = self.cache[key]
+            if time.time() - entry["time"] < self.ttl:
+                self.hits += 1
+                return entry["translation"]
+            else:
+                del self.cache[key]
+        self.misses += 1
+        return None
+
+    def put(self, text, src, tgt, translation):
+        if len(self.cache) >= self.max_size:
+            self.cache.pop(next(iter(self.cache)))
+        key = f"{text}|{src}|{tgt}"
+        self.cache[key] = {"translation": translation, "time": time.time()}
+
+    def stats(self):
+        total = self.hits + self.misses
+        hit_rate = (self.hits / total * 100) if total > 0 else 0
+        return {
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": f"{hit_rate:.1f}%",
+        }
+
+
+_translation_cache = TranslationCache()
+
+# Common query translations for instant lookup (avoid API calls)
+COMMON_TRANSLATIONS = {
+    # English -> Bangla
+    ("climate change", "en", "bn"): "জলবায়ু পরিবর্তন",
+    ("weather", "en", "bn"): "আবহাওয়া",
+    ("economy", "en", "bn"): "অর্থনীতি",
+    ("politics", "en", "bn"): "রাজনীতি",
+    ("covid", "en", "bn"): "কোভিড",
+    ("bangladesh", "en", "bn"): "বাংলাদেশ",
+    ("mobile phone", "en", "bn"): "মোবাইল ফোন",
+    ("election", "en", "bn"): "নির্বাচন",
+    ("government", "en", "bn"): "সরকার",
+    # Bangla -> English
+    ("জলবায়ু পরিবর্তন", "bn", "en"): "climate change",
+    ("আবহাওয়া", "bn", "en"): "weather",
+    ("অর্থনীতি", "bn", "en"): "economy",
+    ("রাজনীতি", "bn", "en"): "politics",
+    ("কোভিড", "bn", "en"): "covid",
+    ("বাংলাদেশ", "bn", "en"): "bangladesh",
+    ("মোবাইল ফোন", "bn", "en"): "mobile phone",
+    ("নির্বাচন", "bn", "en"): "election",
+    ("সরকার", "bn", "en"): "government",
+}
+
+
+def get_cache_stats():
+    """Get translation cache statistics."""
+    return _translation_cache.stats()
+
+
 def translate_query(text: str, src_lang: str, tgt_lang: str) -> str:
-    """
-    Translate query text from source language to target language.
-
-    Uses googletrans library (free Google Translate API wrapper).
-
-    Args:
-        text: The text to translate
-        src_lang: Source language code ('bn' or 'en')
-        tgt_lang: Target language code ('bn' or 'en')
-
-    Returns:
-        Translated text, or original text if translation fails
-
-    Example:
-        >>> translate_query("climate change", "en", "bn")
-        'জলবায়ু পরিবর্তন'
-
-        >>> translate_query("ঢাকা বিশ্ববিদ্যালয়", "bn", "en")
-        'Dhaka University'
-    """
-    # If source and target are the same, no translation needed
-    if src_lang == tgt_lang:
+    """Translate query with caching and fallback strategies."""
+    if src_lang == tgt_lang or not text.strip():
         return text
 
-    # If text is empty, return as-is
-    if not text or not text.strip():
-        return text
+    # Check common translations first (instant)
+    common_key = (text.lower(), src_lang, tgt_lang)
+    if common_key in COMMON_TRANSLATIONS:
+        logger.info(
+            f"Using common translation: {text} -> {COMMON_TRANSLATIONS[common_key]}"
+        )
+        return COMMON_TRANSLATIONS[common_key]
+
+    # Check cache (instant if cached)
+    cached = _translation_cache.get(text, src_lang, tgt_lang)
+    if cached:
+        return cached
+
+    # Translate with fallback: deep-translator -> googletrans
+    translated = None
 
     try:
-        from googletrans import Translator
+        from deep_translator import GoogleTranslator
 
-        # Map our language codes to Google Translate codes
-        # 'bn' stays 'bn', 'en' stays 'en'
-        lang_map = {"bn": "bn", "en": "en"}
-        src = lang_map.get(src_lang, src_lang)
-        tgt = lang_map.get(tgt_lang, tgt_lang)
-
-        # Create translator instance
-        translator = Translator()
-
-        # Translate
-        result = translator.translate(text, src=src, dest=tgt)
-
-        # Explicit validation of translation result
-        if not result or not result.text:
-            logger.warning(f"Translation returned None or empty result for: '{text}'")
-            logger.warning(f"  Reason: googletrans returned invalid response")
-            logger.warning(f"  Fallback: Using original text")
-            return text
-
-        translated_text = result.text.strip()
-
-        # Check if translation actually changed the text
-        # If source != target but output == input, translation failed silently
-        if translated_text.lower() == text.lower() and src_lang != tgt_lang:
-            logger.warning(
-                f"Translation failed silently for: '{text}' ({src_lang} -> {tgt_lang})"
-            )
-            logger.warning(f"  Reason: Translated text identical to source text")
-            logger.warning(f"  Output: '{translated_text}'")
-            logger.warning(f"  Fallback: Using original text")
-            return text
-
-        # Check if translation is suspiciously short (possible truncation)
-        if len(translated_text) < len(text) * 0.3 and len(text) > 10:
-            logger.warning(f"Translation suspiciously short for: '{text}'")
-            logger.warning(
-                f"  Input length: {len(text)}, Output length: {len(translated_text)}"
-            )
-            logger.warning(f"  Output: '{translated_text}'")
-            logger.warning(f"  Fallback: Using original text")
-            return text
-
-        logger.info(
-            f"Translation successful: '{text}' ({src_lang}) -> '{translated_text}' ({tgt_lang})"
-        )
-        return translated_text
-
+        translator = GoogleTranslator(source=src_lang, target=tgt_lang)
+        translated = translator.translate(text)
+        logger.debug("Translation: deep-translator succeeded")
     except ImportError:
-        logger.warning(
-            "googletrans not installed. Install with: pip install googletrans==4.0.0-rc1"
-        )
-        logger.warning("  Fallback: Using original text without translation")
-        return text
-    except AttributeError as e:
-        logger.error(f"Translation API error for '{text}': {e}")
-        logger.error("  Possible cause: googletrans API change or connection issue")
-        logger.error("  Fallback: Using original text")
-        return text
+        logger.debug("deep-translator not available, trying googletrans")
     except Exception as e:
-        logger.error(
-            f"Unexpected translation error for '{text}': {type(e).__name__}: {e}"
-        )
-        logger.error("  Fallback: Using original text")
+        logger.warning(f"deep-translator failed: {e}")
+
+    if not translated:
+        try:
+            from googletrans import Translator
+
+            translator = Translator()
+            result = translator.translate(text, src=src_lang, dest=tgt_lang)
+            translated = result.text if result and result.text else None
+            logger.debug("Translation: googletrans succeeded")
+        except Exception as e:
+            logger.warning(f"Translation failed: {e}")
+            return text
+
+    if not translated or translated.strip() == "":
         return text
+
+    # Cache successful translation
+    _translation_cache.put(text, src_lang, tgt_lang, translated)
+    return translated
 
 
 def process_query_with_translation(query_obj: dict, target_lang: str) -> dict:
