@@ -1,435 +1,346 @@
-# CLIR Project: Cross-Lingual Information Retrieval System
+# CLIR System: Cross-Lingual Information Retrieval
 
-## 📋 Project Overview
+A production-ready Cross-Lingual Information Retrieval system for Bangla-English news articles with hybrid ranking, semantic search, and interactive web interface.
 
-This project implements a **Cross-Lingual Information Retrieval (CLIR)** system for Bangla-English news articles. The system is designed to crawl, process, index, and retrieve news articles from multiple Bangladeshi news sources in both Bengali and English languages.
-
-### Current Status: Module 1 - Data Acquisition (✅ Completed)
-
-
-## 📊 Current Implementation: Data Acquisition Module
-
-### ✅ What Has Been Accomplished
-
-#### 1. **Web Crawling Infrastructure**
-
-I have built a robust, scalable web crawling system with the following components:
-
-##### **Base Crawler Architecture** ([base_crawler.py](src/module1_data_acquisition/crawlers/base_crawler.py))
-
-- Abstract base class for all crawlers
-- Handles HTTP requests with retry logic and respectful crawling delays
-- Automatic encoding detection for Bangla/English content
-- MD5-based unique filename generation to avoid duplicates
-- Comprehensive logging system with UTF-8 support
-- JSON-based data storage with timestamping
-- Built-in error handling and recovery mechanisms
-
-##### **Selenium-Based Dynamic Crawler** ([selenium_crawler.py](src/module1_data_acquisition/crawlers/selenium_crawler.py))
-
-A sophisticated crawler for modern JavaScript-heavy news websites with:
-
-- **Multiple Pagination Strategies:**
-  - AJAX "Load More" button handling
-  - Infinite scroll detection and management
-  - Numbered pagination (`?page=1`, `?page=2`, etc.)
-- **Smart Detection:**
-  - Duplicate article prevention
-  - Progress tracking to avoid infinite loops
-  - Configurable maximum attempts per category
-- **Driver Management** ([selenium_driver.py](src/module1_data_acquisition/crawlers/selenium_driver.py)):
-  - Headless Chrome browser automation
-  - Anti-detection measures (stealth mode)
-  - Automatic driver installation via webdriver-manager
-  - Memory-efficient page loading
-- **Button Strategy System** ([selenium_buttons.py](src/module1_data_acquisition/crawlers/selenium_buttons.py)):
-  - Intelligent button click attempts with retries
-  - Scroll-based element visibility handling
-  - Infinite scroll with progress monitoring
-
-##### **Generic Static Crawler** ([generic_crawler.py](src/module1_data_acquisition/crawlers/generic_crawler.py))
-
-- For traditional, non-JavaScript news sites
-- Simple HTML parsing with BeautifulSoup
-- Link extraction and pagination support
-
-#### 2. **News Source Coverage**
-
-##### **Bangla News Sources** (6 sources) - [bangla_crawlers.py](src/module1_data_acquisition/crawlers/bangla_crawlers.py)
-
-1. **Prothom Alo** (`prothom_alo`) - AJAX load more, 11 categories
-2. **The Daily Ittefaq** (`ittefaq`) - AJAX pagination, 9 categories
-3. **Bangla Tribune** (`bangla_tribune`) - AJAX load more, 12 categories
-4. **Dhaka Post** (`dhaka_post`) - Infinite scroll, 9 categories
-5. **Samakal** (`samakal`) - AJAX pagination, 8 categories
-6. **Jugantor** (`jugantor`) - AJAX pagination, 14 categories
-
-##### **English News Sources** (8 sources) - [english_crawlers.py](src/module1_data_acquisition/crawlers/english_crawlers.py)
-
-1. **The Daily Star** (`daily_star`) - Numbered pagination, 12 categories
-2. **New Age** (`new_age`) - Numbered pagination, 8 categories
-3. **Daily Observer** (`daily_observer`) - Static site
-4. **Prothom Alo English** (`prothom_alo`) - Infinite scroll, 8 categories
-5. **Dhaka Tribune** (`dhaka_tribune`) - AJAX pagination, 11 categories
-6. **Financial Express** (`financial_express`) - Numbered pagination, 10 categories
-7. **NTV Bangladesh** (`ntv_bd`) - AJAX pagination, 8 categories
-8. **United News of Bangladesh (UNB)** (`unb`) - AJAX pagination, 10 categories
-
-**Total: 14 News Sources** across both languages
-
-#### 3. **Data Structure & Storage**
-
-##### **Article Data Model**
-
-Each article is stored as a JSON file containing:
-
-```json
-{
-  "url": "https://example.com/article",
-  "language": "bangla|english",
-  "source": "source_name",
-  "title": "Article Title",
-  "body": "Full article text content",
-  "date": "Publication date (if available)",
-  "crawled_at": "2025-12-18 06:37:25"
-}
-```
-
-##### **Directory Structure**
+## System Architecture
 
 ```
-data/
-├── raw/
-│   ├── bangla/
-│   │   ├── prothom_alo/
-│   │   │   ├── 803452_2cfd948f.json
-│   │   │   ├── 812787_7eedad87.json
-│   │   │   └── ...
-│   │   ├── ittefaq/
-│   │   ├── bangla_tribune/
-│   │   ├── dhaka_post/
-│   │   ├── samakal/
-│   │   └── jugantor/
-│   └── english/
-│       ├── daily_star/
-│       ├── new_age/
-│       ├── daily_observer/
-│       ├── prothom_alo/
-│       ├── dhaka_tribune/
-│       ├── financial_express/
-│       ├── ntv_bd/
-│       └── unb/
-└── metadata.csv
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                          PRESENTATION LAYER (Frontend)                            ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │                      STREAMLIT WEB INTERFACE (app.py)                       │  ║
+║  │   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐      │  ║
+║  │   │   Search Page    │  │  Evaluation &    │  │   Error Analysis     │      │  ║
+║  │   │  • Query Input   │  │    Metrics       │  │  • 5 Error Types     │      │  ║
+║  │   │  • Top 10 Docs   │  │  • P@10, R@50    │  │  • Distribution      │      │  ║
+║  │   │  • Score Display │  │  • MRR, nDCG@10  │  │  • Recommendations   │      │  ║
+║  │   └────────┬─────────┘  └────────┬─────────┘  └──────────┬───────────┘      │  ║
+║  └────────────┼─────────────────────┼─────────────────────────┼────────────────┘  ║
+╚══════════════╪═════════════════════╪═════════════════════════╪════════════════════╝
+                │                     │                         │
+                └─────────────────────┼─────────────────────────┘
+                                     ▼
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                        MODULE 2: QUERY PROCESSING LAYER                           ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │                      QueryProcessor (query_processor.py)                    │  ║
+║  │                                                                             │  ║
+║  │   Step 1: Text Normalization          Step 2: Language Detection            │  ║
+║  │   ┌────────────────────┐               ┌────────────────────┐               │  ║
+║  │   │ • Remove extra     │               │ • Detect Bangla    │               │  ║
+║  │   │   whitespace       │    ────────►  │   vs English       │               │  ║
+║  │   │ • Clean special    │               │ • Unicode range    │               │  ║
+║  │   │   characters       │               │   checking         │               │  ║
+║  │   └────────────────────┘               └──────────┬─────────┘               │  ║
+║  │                                                   │                        │  ║
+║  │   Step 3: Cross-Lingual Translation (if Bangla)   ▼                         │  ║
+║  │   ┌───────────────────────────────────────────────────────────┐             │  ║
+║  │   │  LaBSE Multilingual Embeddings (sentence-transformers)    │             │  ║
+║  │   │  • Direct semantic understanding (no explicit translation)│             │  ║
+║  │   │  • 768-dimensional dense vectors                          │             │  ║
+║  │   │  • Preserves cross-lingual semantic similarity            │             │  ║
+║  │   └───────────────────────────────────────────────────────────┘             │  ║
+║  │                                                                             │  ║
+║  │   Output: Processed Query + Original Query + Language Info                  │  ║
+║  └─────────────────────────────────────────────────────────────────────────────┘  ║
+╚═══════════════════════════════════════════════════════╪═══════════════════════════╝
+                                                        ▼
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                          MODULE 3: RETRIEVAL LAYER                                ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │                        Retriever (retriever.py)                             │  ║
+║  │                                                                             │  ║
+║  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────┐   │  ║
+║  │  │  Lexical         │  │   Semantic       │  │   Fuzzy Search           │   │  ║
+║  │  │  Retrieval       │  │  Retrieval       │  │  (Transliteration)       │   │  ║
+║  │  ├──────────────────┤  ├──────────────────┤  ├──────────────────────────┤   │  ║
+║  │  │ Technology:      │  │ Technology:      │  │ Technology:              │   │  ║
+║  │  │ • Whoosh Index   │  │ • LaBSE + FAISS  │  │ • FuzzyWuzzy             │   │  ║
+║  │  │ • BM25 Algorithm │  │ • Vector Search  │  │ • Title-only search      │   │  ║
+║  │  │                  │  │ • k=50 nearest   │  │ • Named entity focus     │   │  ║
+║  │  │ Strengths:       │  │                  │  │                          │   │  ║
+║  │  │ • Exact keyword  │  │ Strengths:       │  │ Strengths:               │   │  ║
+║  │  │   matching       │  │ • Cross-lingual  │  │ • Handles spelling       │   │  ║
+║  │  │ • Term frequency │  │   understanding  │  │   variations             │   │  ║
+║  │  │ • Fast lookup    │  │ • Semantic sim.  │  │ • Name transliteration   │   │  ║
+║  │  │                  │  │ • Context aware  │  │ • Phonetic matching      │   │  ║
+║  │  │ Returns:         │  │                  │  │                          │   │  ║
+║  │  │ • Top 50 docs    │  │ Returns:         │  │ Returns:                 │   │  ║
+║  │  │ • BM25 scores    │  │ • Top 50 docs    │  │ • Top 50 docs            │   │  ║
+║  │  │                  │  │ • Cosine sim.    │  │ • Fuzzy scores           │   │  ║
+║  │  └────────┬─────────┘  └────────┬─────────┘  └──────────┬───────────────┘   │  ║
+║  └───────────┼─────────────────────┼─────────────────────────┼─────────────────┘  ║
+╚══════════════╪═════════════════════╪═════════════════════════╪════════════════════╝
+               │                     │                         │
+               └─────────────────────┼─────────────────────────┘
+                                     ▼
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                       MODULE 4: RANKING & FUSION LAYER                            ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │                          Ranker (ranker.py)                                 │  ║
+║  │                                                                             │  ║
+║  │  ┌──────────────────────────────────────────────────────────────────────┐  │  ║
+║  │  │                     SCORE NORMALIZATION                              │  │  ║
+║  │  │  • Min-Max scaling to [0, 1] range for each retrieval method        │  │  ║
+║  │  │  • Ensures fair comparison across different scoring systems          │  │  ║
+║  │  └──────────────────────────────────────────────────────────────────────┘  │  ║
+║  │                                     │                                       │  ║
+║  │                                     ▼                                       │  ║
+║  │  ┌──────────────────────────────────────────────────────────────────────┐  │  ║
+║  │  │                     WEIGHTED SCORE FUSION                            │  │  ║
+║  │  │                                                                      │  │  ║
+║  │  │   Final Score = (0.60 × Semantic) + (0.20 × Lexical) + (0.20 × Fuzzy) │  ║
+║  │  │                                                                      │  │  ║
+║  │  │   Rationale:                                                         │  │  ║
+║  │  │   • Semantic (60%): Primary for cross-lingual understanding          │  │  ║
+║  │  │   • Lexical  (20%): Boosts exact keyword matches                     │  │  ║
+║  │  │   • Fuzzy    (20%): Handles named entities & transliteration         │  │  ║
+║  │  └──────────────────────────────────────────────────────────────────────┘  │  ║
+║  │                                     │                                       │  ║
+║  │                                     ▼                                       │  ║
+║  │  ┌──────────────────────────────────────────────────────────────────────┐  │  ║
+║  │  │                    EVALUATION METRICS                                │  │  ║
+║  │  │                                                                      │  │  ║
+║  │  │  • P@10   : Precision at top 10 (relevance accuracy)                │  │  ║
+║  │  │  • R@50   : Recall at top 50 (coverage of relevant docs)            │  │  ║
+║  │  │  • MRR    : Mean Reciprocal Rank (first relevant position)          │  │  ║
+║  │  │  • nDCG@10: Normalized Discounted Cumulative Gain (ranked quality)  │  │  ║
+║  │  └──────────────────────────────────────────────────────────────────────┘  │  ║
+║  │                                                                             │  ║
+║  │  Output: Ranked Documents (Top 10) with Final Scores                       │  ║
+║  └─────────────────────────────────────────────────────────────────────────────┘  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+                                        ▲
+                                        │ (reads from)
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                       MODULE 1: DATA & INDEXING LAYER                             ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │                                                                             │  ║
+║  │  ┌─────────────────────────────────────────────────────────────────────┐   │  ║
+║  │  │                      RAW DATA COLLECTION                            │   │  ║
+║  │  │  • 5,194 News Articles (Bangla: 2,500+ | English: 2,700+)          │   │  ║
+║  │  │  • 14 Sources: 6 Bangla + 8 English newspapers                     │   │  ║
+║  │  │  • JSON format: {title, body, url, source, language, date}         │   │  ║
+║  │  │  • Web Crawlers: Selenium (dynamic) + BeautifulSoup (static)       │   │  ║
+║  │  └────────────────────────────────┬────────────────────────────────────┘   │  ║
+║  │                                   │                                         │  ║
+║  │                                   ▼                                         │  ║
+║  │  ┌────────────────────┐    ┌──────────────────┐    ┌──────────────────┐   │  ║
+║  │  │  Metadata CSV      │    │  Whoosh Index    │    │  FAISS Index     │   │  ║
+║  │  │  (metadata.csv)    │    │  (indices/whoosh)│    │  (embeddings/)   │   │  ║
+║  │  ├────────────────────┤    ├──────────────────┤    ├──────────────────┤   │  ║
+║  │  │ • Document IDs     │    │ • Inverted Index │    │ • LaBSE vectors  │   │  ║
+║  │  │ • Source info      │    │ • BM25 weights   │    │ • 5,194 × 768    │   │  ║
+║  │  │ • Language labels  │    │ • Term positions │    │ • Cosine search  │   │  ║
+║  │  │ • File paths       │    │ • Fast lexical   │    │ • GPU-optimized  │   │  ║
+║  │  │ • Timestamps       │    │   retrieval      │    │ • Batch queries  │   │  ║
+║  │  └────────────────────┘    └──────────────────┘    └──────────────────┘   │  ║
+║  │                                                                             │  ║
+║  │  Tools: Indexer, EmbeddingGenerator, MetadataGenerator                     │  ║
+║  └─────────────────────────────────────────────────────────────────────────────┘  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+                         DATA FLOW SUMMARY
+    ┌────────────────────────────────────────────────────┐
+    │  User Query (Bangla/English)                       │
+    └────────────────┬───────────────────────────────────┘
+                     ▼
+    ┌────────────────────────────────────────────────────┐
+    │  Query Processing (Normalization + Language ID)    │
+    └────────────────┬───────────────────────────────────┘
+                     ▼
+    ┌────────────────────────────────────────────────────┐
+    │  Parallel Retrieval (BM25 + LaBSE + Fuzzy)         │
+    └────────────────┬───────────────────────────────────┘
+                     ▼
+    ┌────────────────────────────────────────────────────┐
+    │  Score Fusion + Ranking (Weighted combination)     │
+    └────────────────┬───────────────────────────────────┘
+                     ▼
+    ┌────────────────────────────────────────────────────┐
+    │  Top 10 Results (With scores & metadata)           │
+    └────────────────────────────────────────────────────┘
 ```
 
-#### 4. **Metadata Generation System** ([generate_metadata.py](src/module1_data_acquisition/generate_metadata.py))
+## Quick Start
 
-Automated metadata extraction and cleaning:
-
-- Scans all JSON files in the data directory
-- Extracts key metadata fields
-- **Data Cleaning Operations:**
-  - Removes duplicate articles (by URL)
-  - Filters out entries with missing titles or URLs
-  - Sorts by language and source
-- Generates comprehensive CSV file ([metadata.csv](data/metadata.csv)) with:
-  - Filename, language, source, URL, title, date, crawl timestamp, filepath
-- **Statistics:** Currently contains **5,634 articles** across both languages
-
-#### 5. **Utility Functions** ([utils.py](src/module1_data_acquisition/utils.py))
-
-- `clean_text()`: Removes extra whitespace and normalizes text
-- `parse_date()`: Flexible date parsing with dateparser library
-
-#### 6. **Command-Line Interface** ([main.py](main.py))
-
-Flexible CLI for crawling operations:
+### 1. Installation
 
 ```bash
-# Crawl all sources (default 50 articles per site)
-python main.py
-
-# Crawl only Bangla sources
-python main.py --lang bangla
-
-# Crawl only English sources
-python main.py --lang english
-
-# Specify number of articles per site
-python main.py --limit 100
-
-# Crawl specific source
-python main.py --source bangla_tribune --limit 200
-
-# Combine options
-python main.py --lang english --limit 150
-```
-
-**Features:**
-
-- Language selection (bangla/english/all)
-- Article limit per source
-- Single source targeting
-- Error handling and logging
-- Progress tracking
-
----
-
-## 🔧 Technical Stack
-
-### **Core Technologies**
-
-- **Python 3.x** - Main programming language
-- **Beautiful Soup 4** - HTML parsing
-- **Selenium** - Dynamic content & JavaScript handling
-- **Requests** - HTTP requests
-- **Pandas** - Data manipulation & CSV handling
-
-### **Dependencies** ([requirements.txt](requirements.txt))
-
-#### Web Crawling & Parsing
-
-- `requests==2.31.0` - HTTP library
-- `beautifulsoup4==4.12.3` - HTML/XML parsing
-- `lxml==5.1.0` - Fast XML/HTML processing
-- `selenium==4.18.1` - Browser automation
-- `webdriver-manager==4.0.1` - Automatic driver management
-
-#### Data Processing
-
-- `pandas==2.2.0` - Data analysis & manipulation
-- `dateparser==1.2.0` - Flexible date parsing
-- `tqdm==4.66.1` - Progress bars
-
----
-
-## 📈 Dataset Statistics
-
-### **Current Collection (As of December 27, 2025)**
-
-- **Total Articles:** 5,634 unique articles
-- **Languages:** Bangla & English
-- **Sources:** 14 different news outlets
-- **Data Quality:**
-  - All articles have titles and URLs
-  - Duplicates removed
-  - UTF-8 encoded for Bangla support
-  - Timestamped for tracking
-
-### **Article Distribution by Source**
-
-Varies by source availability and category coverage. View detailed breakdown:
-
-```bash
-python src/module1_data_acquisition/generate_metadata.py
-```
-
----
-
-## 🚀 Installation & Setup
-
-### **1. Clone the Repository**
-
-```bash
+# Clone repository
 cd clir-project
-```
 
-### **2. Create Virtual Environment (Recommended)**
-
-```bash
-# Windows
+# Create virtual environment
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
 
-# Linux/Mac
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### **3. Install Dependencies**
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### **4. Setup Chrome Driver**
-
-The system automatically downloads and manages Chrome drivers via `webdriver-manager`. Ensure you have Chrome browser installed.
-
----
-
-## 💻 Usage Guide
-
-### **Basic Crawling**
-
-#### Crawl All Sources
+### 2. Run the Web Interface
 
 ```bash
-python main.py --lang all --limit 50
+streamlit run app.py
 ```
 
-#### Crawl Bangla Sources Only
+Access at: `http://localhost:8501`
 
-```bash
-python main.py --lang bangla --limit 100
-```
+### 3. Navigate the Interface
 
-#### Crawl Specific Source
+- **Search Page**: Cross-lingual search with Bangla/English queries
+- **Evaluation & Metrics**: Interactive charts showing P@10, R@50, MRR, nDCG@10
+- **Error Analysis**: Visualize 5 error categories with examples
 
-```bash
-python main.py --source daily_star --limit 200
-```
+## Features
 
-### **Generate/Update Metadata**
+### Core Capabilities
 
-After crawling, generate the metadata CSV:
+- **Cross-Lingual Search**: Query in Bangla, retrieve English documents (and vice versa)
+- **Hybrid Ranking**: Combines semantic, lexical, and fuzzy matching
+- **5,194 Documents**: News articles from 14 Bangladeshi sources
+- **Multi-Page UI**: Professional Streamlit interface with interactive charts
 
-```bash
-python src/module1_data_acquisition/generate_metadata.py
-```
+### Retrieval Methods
 
-This will:
+| Method       | Technology      | Use Case                 |
+| ------------ | --------------- | ------------------------ |
+| **Lexical**  | BM25 (Whoosh)   | Keyword matching         |
+| **Semantic** | LaBSE + FAISS   | Cross-lingual embeddings |
+| **Fuzzy**    | Transliteration | Named entity matching    |
 
-- Scan all JSON files
-- Remove duplicates
-- Clean missing data
-- Generate `data/metadata.csv`
-- Display statistics by source
+### Evaluation Metrics
 
-### **Logging**
+- **P@10**: Precision at top 10 results
+- **R@50**: Recall at top 50 results
+- **MRR**: Mean Reciprocal Rank
+- **nDCG@10**: Normalized Discounted Cumulative Gain
 
-All crawl activities are logged to:
+### Error Analysis (5 Categories)
 
-```
-logs/crawler.log
-```
+1. Translation Drift
+2. Tokenization Issues
+3. Named Entity Failures
+4. Domain/Topic Mismatch
+5. Stopword/Function Word Issues
 
----
-
-## 🏗️ System Architecture
-
-### **Module 1: Data Acquisition (✅ Current)**
-
-```
-┌─────────────────────────────────────────────┐
-│           Main CLI (main.py)                │
-├─────────────────────────────────────────────┤
-│   ┌─────────────┐     ┌──────────────┐     │
-│   │   Bangla    │     │   English    │     │
-│   │  Crawlers   │     │   Crawlers   │     │
-│   └──────┬──────┘     └──────┬───────┘     │
-│          │                   │              │
-│   ┌──────▼───────────────────▼───────┐     │
-│   │     Selenium Crawler             │     │
-│   │  ┌─────────┐  ┌──────────────┐  │     │
-│   │  │ Driver  │  │    Button     │  │     │
-│   │  │ Manager │  │   Strategy    │  │     │
-│   │  └─────────┘  └──────────────┘  │     │
-│   └──────────────────────────────────┘     │
-│   ┌──────────────────────────────────┐     │
-│   │     Base Crawler (Abstract)      │     │
-│   └──────────────────────────────────┘     │
-├─────────────────────────────────────────────┤
-│              Data Storage                   │
-│   ┌──────────┐          ┌────────────┐     │
-│   │   JSON   │   ───>   │ metadata   │     │
-│   │  Files   │          │    .csv    │     │
-│   └──────────┘          └────────────┘     │
-└─────────────────────────────────────────────┘
-```
-
-### **Design Patterns Used**
-
-1. **Abstract Base Class Pattern** - `BaseCrawler` provides interface
-2. **Strategy Pattern** - `ButtonClickStrategy` for different pagination types
-3. **Factory Pattern** - `get_bangla_crawlers()` and `get_english_crawlers()`
-4. **Singleton Pattern** - Driver management
-5. **Template Method Pattern** - `crawl()` method workflow
-
----
-
-## 🎓 Key Features & Innovations
-
-### **1. Robust Crawling Strategies**
-
-- Handles static HTML, AJAX, infinite scroll, and paginated sites
-- Automatic retry with exponential backoff
-- Respectful crawling with configurable delays
-- Anti-detection measures for Selenium
-
-### **2. Bangla Language Support**
-
-- UTF-8 encoding throughout
-- Proper handling of Bangla text in logs and files
-- Bangla date parsing support
-
-### **3. Data Quality Assurance**
-
-- Duplicate detection and removal
-- Missing data filtering
-- URL validation
-- Content normalization
-
-### **4. Scalability**
-
-- Modular crawler design for easy addition of new sources
-- Efficient file storage with MD5 hashing
-- Parallel processing capability (can be extended)
-
-### **5. Monitoring & Debugging**
-
-- Comprehensive logging system
-- Progress indicators with `tqdm`
-- Detailed error messages
-- Per-source statistics
-
----
-
-## 📁 Project Structure Breakdown
+## Project Structure
 
 ```
 clir-project/
-├── main.py                          # CLI entry point
-├── requirements.txt                 # Python dependencies
-├── README.md                        # This file
+├── app.py                              # Streamlit web interface
+├── main.py                             # Data acquisition CLI
+├── requirements.txt                    # Python dependencies
+├── README.md                           # This file
 │
-├── data/                            # All collected data
-│   ├── metadata.csv                 # Centralized metadata (5,634 articles)
-│   └── raw/                         # Raw article JSON files
-│       ├── bangla/                  # Bangla news sources
-│       │   ├── prothom_alo/
-│       │   ├── ittefaq/
-│       │   ├── bangla_tribune/
-│       │   ├── dhaka_post/
-│       │   ├── samakal/
-│       │   └── jugantor/
-│       └── english/                 # English news sources
-│           ├── daily_star/
-│           ├── new_age/
-│           ├── daily_observer/
-│           ├── prothom_alo/
-│           ├── dhaka_tribune/
-│           ├── financial_express/
-│           ├── ntv_bd/
-│           └── unb/
+├── data/
+│   ├── metadata.csv                    # 5,194 articles metadata
+│   ├── embeddings/                     # LaBSE embeddings
+│   ├── indices/
+│   │   └── whoosh/                     # BM25 index
+│   └── raw/                            # Original JSON articles
+│       ├── bangla/                     # 6 Bangla sources
+│       └── english/                    # 8 English sources
 │
-├── logs/                            # Crawling logs
-│   └── crawler.log
+├── src/
+│   ├── module1_data_acquisition/       # Web crawlers & metadata
+│   ├── module1_preprocessing_indexing/ # Indexing & embeddings
+│   ├── module2_query_processing/       # Query normalization
+│   ├── module3_retrieval/              # BM25, FAISS, Fuzzy
+│   └── module4_ranking/                # Hybrid fusion & metrics
 │
-└── src/                             # Source code
-    └── module1_data_acquisition/
-        ├── __init__.py
-        ├── generate_metadata.py     # Metadata extraction & cleaning
-        ├── utils.py                 # Utility functions
-        └── crawlers/
-            ├── __init__.py
-            ├── base_crawler.py      # Abstract base crawler
-            ├── selenium_crawler.py  # Main Selenium crawler
-            ├── selenium_driver.py   # WebDriver management
-            ├── selenium_buttons.py  # Button click strategies
-            ├── generic_crawler.py   # Static site crawler
-            ├── bangla_crawlers.py   # Bangla source configs
-            └── english_crawlers.py  # English source configs
+├── evaluation_results/                 # HTML/CSV/PNG reports
+├── evaluation_detailed.py              # Error analysis script
+└── run_evaluation_with_visualization.py # Evaluation pipeline
 ```
 
-_Last Generated: December 27, 2025_
+## Technologies
+
+### Core Stack
+
+- **Python 3.12** - Programming language
+- **Streamlit** - Web interface
+- **Plotly** - Interactive charts
+- **Pandas** - Data manipulation
+
+### NLP & IR
+
+- **LaBSE** (sentence-transformers) - Multilingual embeddings
+- **Whoosh** - BM25 indexing
+- **FAISS** - Vector similarity search
+- **FuzzyWuzzy** - String matching
+
+### Data Collection
+
+- **Selenium** - Dynamic web scraping
+- **BeautifulSoup** - HTML parsing
+
+## Usage Examples
+
+### Search from Command Line
+
+```python
+from src.module2_query_processing.query_processor import QueryProcessor
+from src.module3_retrieval.retriever import Retriever
+from src.module4_ranking.ranker import Ranker
+
+query_processor = QueryProcessor()
+retriever = Retriever()
+ranker = Ranker()
+
+query = "ঢাকার বায়ু দূষণ"  # Bangla query
+processed = query_processor.process_query(query)
+results = retriever.retrieve(processed)
+ranked = ranker.rank(results, processed)
+
+for doc in ranked[:10]:
+    print(f"{doc['title']} - Score: {doc['final_score']:.4f}")
+```
+
+### Generate Evaluation Reports
+
+```bash
+python run_evaluation_with_visualization.py
+```
+
+Output: `evaluation_results/evaluation_summary.html`
+
+### Run Error Analysis
+
+```bash
+python evaluation_detailed.py
+```
+
+Shows 5 error categories with detailed examples.
+
+## Data Sources
+
+### Bangla (6 sources)
+
+- Prothom Alo, Ittefaq, Bangla Tribune, Dhaka Post, Samakal, Jugantor
+
+### English (8 sources)
+
+- Daily Star, New Age, Dhaka Tribune, Financial Express, NTV BD, UNB, Prothom Alo English, Daily Observer
+
+## Performance
+
+- **Dataset**: 5,194 documents
+- **Average Query Time**: <1 second
+- **P@10**: ~0.40-0.60 (varies by query)
+- **MRR**: ~0.50-1.00
+- **nDCG@10**: ~0.60-0.85
+
+## Documentation
+
+- [Module 1: Data Acquisition](src/module1_data_acquisition/)
+- [Module 2: Query Processing](src/module2_query_processing/README.md)
+- [Module 3: Retrieval](src/module3_retrieval/)
+- [Module 4: Ranking & Metrics](src/module4_ranking/README.md)
+
+## License
+
+Academic project for cross-lingual information retrieval research.
+
+---
