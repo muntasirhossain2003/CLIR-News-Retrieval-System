@@ -105,45 +105,21 @@ def clean_text(text: str) -> str:
 
 
 def filter_articles(articles: List[Dict], min_tokens: int = 50) -> List[Dict]:
-    """
-    Filter articles based on criteria.
-    
-    Args:
-        articles: List of articles
-        min_tokens: Minimum token count threshold
-        
-    Returns:
-        Filtered list of articles
-    """
     filtered = []
     
     for article in articles:
-        # Skip if body is too short
         if 'token_count' in article and article['token_count'] < min_tokens:
-            logging.debug(f"Skipping short article: {article.get('url', 'unknown')}")
             continue
         
-        # Skip if no title or body
         if not article.get('title') or not article.get('body'):
-            logging.debug(f"Skipping article with missing fields: {article.get('url', 'unknown')}")
             continue
             
         filtered.append(article)
     
-    logging.info(f"Filtered from {len(articles)} to {len(filtered)} articles")
     return filtered
 
 
 def deduplicate_articles(articles: List[Dict]) -> List[Dict]:
-    """
-    Remove duplicate articles based on URL.
-    
-    Args:
-        articles: List of articles
-        
-    Returns:
-        Deduplicated list of articles
-    """
     seen_urls = set()
     unique_articles = []
     
@@ -152,9 +128,5 @@ def deduplicate_articles(articles: List[Dict]) -> List[Dict]:
         if url and url not in seen_urls:
             seen_urls.add(url)
             unique_articles.append(article)
-    
-    duplicates_removed = len(articles) - len(unique_articles)
-    if duplicates_removed > 0:
-        logging.info(f"Removed {duplicates_removed} duplicate articles")
     
     return unique_articles

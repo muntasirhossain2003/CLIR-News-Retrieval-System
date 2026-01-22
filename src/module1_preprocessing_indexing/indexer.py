@@ -12,7 +12,7 @@ from typing import List, Dict
 import faiss
 from whoosh import index
 from whoosh.fields import Schema, ID, TEXT, STORED
-from whoosh.analysis import RegexTokenizer, LowercaseFilter, StopFilter
+from whoosh.analysis import RegexTokenizer, LowercaseFilter
 from whoosh.analysis.analyzers import CompositeAnalyzer
 
 # Configure logging
@@ -71,41 +71,26 @@ class Indexer:
         return self.articles
     
     def build_whoosh_index(self, index_dir: str = "data/indices/whoosh"):
-        """
-        Build Whoosh index for keyword-based search (BM25).
-        
-        Args:
-            index_dir: Directory to save Whoosh index
-        """
-        logging.info("Building Whoosh index...")
-        
-        # Create index directory
         index_path = Path(index_dir)
         index_path.mkdir(parents=True, exist_ok=True)
         
-        # Define multilingual analyzer for Bangla and English
-        # Use regex tokenizer that works with Unicode characters
         multilingual_analyzer = CompositeAnalyzer(
-            RegexTokenizer(r'\w+'),  # Matches Unicode word characters including Bangla
+            RegexTokenizer(r'\w+'),
             LowercaseFilter()
         )
         
-        # Define schema
         schema = Schema(
             url=ID(stored=True, unique=True),
             title=TEXT(stored=True, analyzer=multilingual_analyzer),
             body=TEXT(stored=True, analyzer=multilingual_analyzer),
-            path=STORED()  # Map filepath to path field
+            path=STORED()
         )
         
-        # Create index
         if index.exists_in(str(index_path)):
-            logging.warning(f"Index already exists at {index_dir}, overwriting...")
             self.whoosh_index = index.open_dir(str(index_path))
         else:
             self.whoosh_index = index.create_in(str(index_path), schema)
         
-        # Index documents
         writer = self.whoosh_index.writer()
         
         for i, article in enumerate(self.articles):
@@ -114,37 +99,18 @@ class Indexer:
                     url=article['url'],
                     title=article.get('title', ''),
                     body=article.get('body', ''),
-                    path=article.get('filepath', '')  # Map filepath -> path
+                    path=article.get('filepath', '')
                 )
-                
-                if (i + 1) % 500 == 0:
-                    logging.info(f"Indexed {i + 1}/{len(self.articles)} documents")
-                    
             except Exception as e:
-                logging.error(f"Error indexing article {article.get('url', 'unknown')}: {e}")
+                logging.error(f"Error indexing article: {e}")
         
         writer.commit()
-        logging.info(f"Whoosh index built successfully: {len(self.articles)} documents")
-        logging.info(f"Index saved to: {index_dir}")
-        
         return self.whoosh_index
     
     def build_faiss_index(self, index_file: str = "data/indices/faiss_index.bin"):
-        """
-        Build FAISS index for dense vector similarity search.
-        Uses IndexFlatIP (Inner Product) with L2-normalized vectors
-        so that Inner Product equals Cosine Similarity.
-        
-        Args:
-            index_file: Path to save FAISS index file
-        """
-        logging.info("Building FAISS index...")
-        
-        # Create output directory
         index_path = Path(index_file)
         index_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Extract embeddings
         embeddings = []
         for article in self.articles:
             embedding = article.get('embedding')
@@ -152,29 +118,14 @@ class Indexer:
                 raise ValueError(f"Article missing embedding: {article.get('url', 'unknown')}")
             embeddings.append(embedding)
         
-        # Convert to numpy array (float32 for FAISS)
         embeddings_matrix = np.array(embeddings, dtype=np.float32)
-        
-        logging.info(f"Embedding matrix shape: {embeddings_matrix.shape}")
-        
-        # L2 normalization
-        # After normalization: ||x|| = 1, so x·y = cos(θ)
-        logging.info("Normalizing embeddings (L2)...")
         faiss.normalize_L2(embeddings_matrix)
         
-        # Create FAISS index (Inner Product)
         dimension = embeddings_matrix.shape[1]
         self.faiss_index = faiss.IndexFlatIP(dimension)
-        
-        # Add vectors to index
         self.faiss_index.add(embeddings_matrix)
         
-        logging.info(f"FAISS index built: {self.faiss_index.ntotal} vectors of dimension {dimension}")
-        
-        # Save index
         faiss.write_index(self.faiss_index, str(index_file))
-        logging.info(f"FAISS index saved to: {index_file}")
-        
         return self.faiss_index
 
 
@@ -183,52 +134,15 @@ def build_indices(
     whoosh_dir: str = "data/indices/whoosh",
     faiss_file: str = "data/indices/faiss_index.bin"
 ):
-    """
-    Main function to build both Whoosh and FAISS indices.
-    
-    Args:
-        pickle_file: Path to processed articles pickle file
-        whoosh_dir: Directory for Whoosh index
-        faiss_file: Path for FAISS index file
-    """
-    logging.info("="*60)
-    logging.info("BUILDING SEARCH INDICES")
-    logging.info("="*60)
-    
-    # Initialize indexer
     indexer = Indexer()
-    
-    # Load data
     articles = indexer.load_data(pickle_file)
-    
-    # Build Whoosh index
-    logging.info("\n" + "-"*60)
-    logging.info("STEP 1: Building Whoosh Index (BM25)")
-    logging.info("-"*60)
     whoosh_index = indexer.build_whoosh_index(whoosh_dir)
-    
-    # Build FAISS index
-    logging.info("\n" + "-"*60)
-    logging.info("STEP 2: Building FAISS Index (Dense Vectors)")
-    logging.info("-"*60)
     faiss_index = indexer.build_faiss_index(faiss_file)
-    
-    # Summary
-    logging.info("\n" + "="*60)
-    logging.info("INDEX BUILDING COMPLETE")
-    logging.info("="*60)
-    logging.info(f"Total articles indexed: {len(articles)}")
-    logging.info(f"Whoosh index: {whoosh_dir}")
-    logging.info(f"FAISS index: {faiss_file}")
-    logging.info(f"FAISS vectors: {faiss_index.ntotal}")
-    logging.info(f"Vector dimension: {faiss_index.d}")
-    logging.info("="*60)
     
     return whoosh_index, faiss_index
 
 
 if __name__ == "__main__":
-    # Build indices
     build_indices(
         pickle_file="data/embeddings/articles_with_embeddings.pkl",
         whoosh_dir="data/indices/whoosh",

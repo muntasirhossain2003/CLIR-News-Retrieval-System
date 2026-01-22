@@ -1,48 +1,163 @@
-# Module 2: Preprocessing and Indexing
+# Module 1.2: Preprocessing & Indexing
 
-This module handles text preprocessing, embedding generation, and index creation for the CLIR system.
+## Purpose
 
-## Files
+Transforms raw news articles into searchable indices using both lexical (BM25) and semantic (LaBSE) approaches for cross-lingual information retrieval.
 
-- **`utils.py`**: Utility functions for loading articles, counting tokens, cleaning text, and filtering
-- **`embedding_generator.py`**: Generate embeddings using LaBSE model and save as pickle file
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Preprocessing & Indexing                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  metadata.csv (5,194 docs)                                      │
+│         │                                                       │
+│         ├──► Whoosh Indexer ──► BM25 Index (data/indices/whoosh/)│
+│         │    (Schema: url, title, content, lang, date)         │
+│         │                                                       │
+│         └──► Embedding Generator ──► FAISS Index                │
+│              (LaBSE 768-dim)         (data/indices/faiss/)      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Components
+
+### 1. **indexer.py**
+
+- **WhooshIndexer**: Creates BM25 lexical index
+  - Schema: url (ID), title (TEXT), content (TEXT), lang (TEXT), date (TEXT)
+  - Analyzer: StandardAnalyzer with stopword filtering
+  - Storage: data/indices/whoosh/
+- **FAISSIndexer**: Builds semantic vector index
+  - Model: LaBSE (sentence-transformers/LaBSE)
+  - Dimensions: 768
+  - Index Type: FAISS FlatL2 (exact L2 distance)
+  - Storage: data/indices/faiss_index.bin + url_mapping.pkl
+
+### 2. **embedding_generator.py**
+
+- Generates embeddings from article content
+- Batch processing with progress tracking
+- Outputs: embeddings.pkl (list of 768-dim vectors)
+
+### 3. **utils.py**
+
+- `load_articles_from_metadata()`: Load articles from metadata.csv
+- `count_tokens()`: Count words in text
+- `clean_text()`: Basic text cleaning
+- `filter_articles()`: Filter by language/date/keywords
+
+## Data Flow
+
+```
+metadata.csv
+    ↓
+load_articles_from_metadata()
+    ↓
+┌───────────────┴──────────────┐
+│                              │
+WhooshIndexer.index()    Embedding Generator
+    ↓                          ↓
+BM25 Index              embeddings.pkl
+(5,194 docs)                 ↓
+                      FAISSIndexer.index()
+                             ↓
+                       FAISS Index
+                      (5,194 vectors)
+```
 
 ## Usage
 
-### Generate Embeddings
+### Build Both Indices
+
+````bash
+cd c:\Users\User\Videos\clir-project
+python main.py index
+```bash
+cd c:\Users\User\Videos\clir-project
+python main.py index
+````
+
+**Output:**
+
+```
+Loading articles from metadata...
+Loaded 5194 articles from metadata
+
+Building Whoosh index...
+Indexed 5194 documents in Whoosh
+Whoosh index created at: data\indices\whoosh
+
+Building FAISS index...
+Loading embeddings from data\embeddings\embeddings.pkl...
+Loaded 5194 embeddings
+FAISS index created at: data\indices\faiss_index.bin
+URL mapping saved at: data\indices\url_mapping.pkl
+```
+
+### Generate Embeddings Only
 
 ```bash
 python main.py embed
 ```
 
-### Custom Options
+**Output:**
 
-```bash
-# Specify custom data directory
-python main.py embed --data-dir data/raw
-
-# Specify output file
-python main.py embed --output data/embeddings/custom_embeddings.pkl
-
-# Use different model
-python main.py embed --model sentence-transformers/paraphrase-multilingual-mpnet-base-v2
-
-# Set minimum token threshold
-python main.py embed --min-tokens 100
-
-# Adjust batch size (smaller for less memory)
-python main.py embed --batch-size 16
+```
+Generating embeddings...
+Processing articles: 100%|████████████| 5194/5194
+Embeddings saved to data\embeddings\embeddings.pkl
 ```
 
-## What It Does
+## Output Structure
 
-1. **Loads** all JSON articles from `data/raw/bangla` and `data/raw/english`
-2. **Deduplicates** articles by URL
-3. **Cleans** text (removes extra whitespace, null bytes)
-4. **Counts tokens** (adds `token_count` field)
-5. **Filters** articles (removes those with < 50 tokens by default)
-6. **Generates embeddings** using LaBSE model (768-dimensional vectors)
-7. **Saves** as pickle file with structure:
+### Whoosh Index
+
+```
+data/indices/whoosh/
+├── _MAIN_1.toc          # Table of contents
+├── MAIN_xxxxx.seg       # Segment files
+└── MAIN_WRITELOCK       # Lock file
+```
+
+**Schema Fields:**
+
+- `url` (ID): Unique document identifier
+- `title` (TEXT): Article headline
+- `content` (TEXT): Full article text
+- `lang` (TEXT): Language code (bn/en)
+- `date` (TEXT): Publication date
+
+### FAISS Index
+
+```
+data/indices/
+├── faiss_index.bin      # 5194 x 768 float32 vectors
+└── url_mapping.pkl      # [url1, url2, ..., url5194]
+```
+
+## Dependencies
+
+```
+whoosh==2.7.4
+faiss-cpu==1.7.4
+sentence-transformers==2.2.2
+transformers==4.36.2
+torch==2.1.2
+pandas==2.1.4
+```
+
+## Performance
+
+- **Whoosh Indexing**: ~10-15 seconds for 5,194 docs
+- **Embedding Generation**: ~3-5 minutes on CPU (batch_size=32)
+- **FAISS Index Build**: ~2-3 seconds
+- **Disk Space**:
+  - Whoosh: ~15 MB
+  - FAISS: ~16 MB (5194 × 768 × 4 bytes)
+  - Embeddings: ~16 MB
 
 ```python
 [
