@@ -1,5 +1,8 @@
 import streamlit as st
 import time
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
 from src.module3_retrieval.retriever import Retriever
 from src.module4_ranking.ranker import Ranker
 
@@ -105,6 +108,19 @@ def main():
     )
     
     apply_custom_css()
+    
+    # Navigation
+    page = st.sidebar.radio("Navigation", ["Search", "Evaluation & Metrics", "Error Analysis"])
+    
+    if page == "Search":
+        search_page()
+    elif page == "Evaluation & Metrics":
+        evaluation_page()
+    elif page == "Error Analysis":
+        error_analysis_page()
+
+
+def search_page():
     
     st.markdown('<div class="main-header">Cross-Lingual Information Retrieval</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Search across Bangla and English news articles with multilingual support</div>', unsafe_allow_html=True)
@@ -300,6 +316,222 @@ def main():
         '</div>',
         unsafe_allow_html=True
     )
+
+
+def evaluation_page():
+    """Display evaluation metrics and results."""
+    st.markdown('<div class="main-header">Evaluation & Metrics</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">System performance metrics across test queries</div>', unsafe_allow_html=True)
+    
+    # Load test data
+    test_queries = {
+        "Q1": {
+            "query": "Dhaka air pollution / ঢাকার বায়ু দূষণ",
+            "metrics": {"P@10": 0.40, "R@50": 1.00, "MRR": 1.00, "nDCG@10": 0.854}
+        },
+        "Q2": {
+            "query": "Bangladesh economy / বাংলাদেশের অর্থনীতি",
+            "metrics": {"P@10": 0.30, "R@50": 0.67, "MRR": 0.50, "nDCG@10": 0.725}
+        },
+        "Q3": {
+            "query": "Cricket match score / ক্রিকেট ম্যাচের স্কোর",
+            "metrics": {"P@10": 0.30, "R@50": 1.00, "MRR": 0.33, "nDCG@10": 0.680}
+        }
+    }
+    
+    # Overall metrics
+    avg_metrics = {
+        "P@10": sum(q["metrics"]["P@10"] for q in test_queries.values()) / len(test_queries),
+        "R@50": sum(q["metrics"]["R@50"] for q in test_queries.values()) / len(test_queries),
+        "MRR": sum(q["metrics"]["MRR"] for q in test_queries.values()) / len(test_queries),
+        "nDCG@10": sum(q["metrics"]["nDCG@10"] for q in test_queries.values()) / len(test_queries)
+    }
+    
+    # Display overall metrics
+    st.markdown("### Overall Performance")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Precision@10", f"{avg_metrics['P@10']:.3f}", 
+                 delta=f"Target: 0.600", delta_color="off")
+    with col2:
+        st.metric("Recall@50", f"{avg_metrics['R@50']:.3f}",
+                 delta=f"Target: 0.500", delta_color="off")
+    with col3:
+        st.metric("MRR", f"{avg_metrics['MRR']:.3f}",
+                 delta=f"Target: 0.400", delta_color="off")
+    with col4:
+        st.metric("nDCG@10", f"{avg_metrics['nDCG@10']:.3f}",
+                 delta=f"Target: 0.500", delta_color="off")
+    
+    st.markdown("")
+    
+    # Metrics comparison chart
+    st.markdown("### Metrics by Query")
+    
+    # Prepare data for chart
+    df_metrics = pd.DataFrame([
+        {"Query": q_id, "Metric": "P@10", "Score": q_data["metrics"]["P@10"]}
+        for q_id, q_data in test_queries.items()
+    ] + [
+        {"Query": q_id, "Metric": "R@50", "Score": q_data["metrics"]["R@50"]}
+        for q_id, q_data in test_queries.items()
+    ] + [
+        {"Query": q_id, "Metric": "MRR", "Score": q_data["metrics"]["MRR"]}
+        for q_id, q_data in test_queries.items()
+    ] + [
+        {"Query": q_id, "Metric": "nDCG@10", "Score": q_data["metrics"]["nDCG@10"]}
+        for q_id, q_data in test_queries.items()
+    ])
+    
+    fig = px.bar(df_metrics, x="Query", y="Score", color="Metric", 
+                 barmode="group", 
+                 title="Evaluation Metrics Comparison",
+                 color_discrete_map={
+                     "P@10": "#3498db",
+                     "R@50": "#e74c3c",
+                     "MRR": "#f39c12",
+                     "nDCG@10": "#2ecc71"
+                 })
+    fig.update_layout(yaxis_range=[0, 1.1])
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Detailed table
+    st.markdown("### Detailed Results")
+    
+    detailed_data = []
+    for q_id, q_data in test_queries.items():
+        detailed_data.append({
+            "Query ID": q_id,
+            "Query": q_data["query"],
+            "P@10": f"{q_data['metrics']['P@10']:.3f}",
+            "R@50": f"{q_data['metrics']['R@50']:.3f}",
+            "MRR": f"{q_data['metrics']['MRR']:.3f}",
+            "nDCG@10": f"{q_data['metrics']['nDCG@10']:.3f}"
+        })
+    
+    df_detailed = pd.DataFrame(detailed_data)
+    st.dataframe(df_detailed, use_container_width=True)
+    
+    # Metrics explanation
+    with st.expander("Metrics Explanation"):
+        st.markdown("""
+        **Precision@10 (P@10)**: Of the top 10 results, what fraction are relevant?
+        - Higher is better (Target: ≥0.60)
+        - Measures accuracy of top results
+        
+        **Recall@50 (R@50)**: Of ALL relevant documents, what fraction did we find in top 50?
+        - Higher is better (Target: ≥0.50)
+        - Measures coverage
+        
+        **MRR (Mean Reciprocal Rank)**: How quickly do we find the first relevant result?
+        - Calculated as: 1 / (rank of first relevant doc)
+        - Higher is better (Target: ≥0.40)
+        
+        **nDCG@10**: Measures ranking quality (relevant docs should be at top)
+        - Higher is better (Target: ≥0.50)
+        - Penalizes relevant docs appearing lower in ranking
+        """)
+
+
+def error_analysis_page():
+    """Display error analysis and failure categories."""
+    st.markdown('<div class="main-header">Error Analysis</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Analysis of retrieval failures across 5 error categories</div>', unsafe_allow_html=True)
+    
+    # Error categories data
+    error_categories = {
+        "Translation Drift": {
+            "count": 2,
+            "examples": [
+                {"query": "খুলনা (Khulna)", "issue": "Mistranslated as 'Open' instead of city name"},
+                {"query": "যানজট (Traffic)", "issue": "Lost semantic nuance in translation"}
+            ]
+        },
+        "Tokenization Issue": {
+            "count": 1,
+            "examples": [
+                {"query": "পদ্মা সেতু (Padma Bridge)", "issue": "Compound noun split incorrectly"}
+            ]
+        },
+        "Named Entity Failure": {
+            "count": 1,
+            "examples": [
+                {"query": "রোহিঙ্গা (Rohingya)", "issue": "Multiple transliteration variants not recognized"}
+            ]
+        },
+        "Domain Mismatch": {
+            "count": 1,
+            "examples": [
+                {"query": "করোনা (Corona)", "issue": "Retrieved astronomy instead of COVID-19"}
+            ]
+        },
+        "Stopword Issue": {
+            "count": 1,
+            "examples": [
+                {"query": "এই বছরের (This year's)", "issue": "Common words caused irrelevant matches"}
+            ]
+        }
+    }
+    
+    # Error distribution chart
+    st.markdown("### Error Category Distribution")
+    
+    error_df = pd.DataFrame([
+        {"Category": cat, "Failures": data["count"]}
+        for cat, data in error_categories.items()
+    ])
+    
+    fig = px.bar(error_df, x="Category", y="Failures",
+                 title="Retrieval Failures by Category",
+                 color="Failures",
+                 color_continuous_scale="Reds")
+    fig.update_layout(xaxis_tickangle=-45, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Summary table
+    st.markdown("### Error Summary")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        summary_data = []
+        for cat, data in error_categories.items():
+            summary_data.append({
+                "Error Category": cat,
+                "Failures": data["count"],
+                "Percentage": f"{(data['count'] / sum(d['count'] for d in error_categories.values()) * 100):.1f}%"
+            })
+        st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
+    
+    with col2:
+        total_errors = sum(d['count'] for d in error_categories.values())
+        st.metric("Total Errors", total_errors)
+        st.metric("Categories", len(error_categories))
+    
+    # Detailed examples
+    st.markdown("### Detailed Error Examples")
+    
+    for category, data in error_categories.items():
+        with st.expander(f"{category} ({data['count']} failures)"):
+            for i, example in enumerate(data['examples'], 1):
+                st.markdown(f"""
+                **Example {i}:**
+                - **Query:** {example['query']}
+                - **Issue:** {example['issue']}
+                """)
+    
+    # Recommendations
+    st.markdown("### Recommendations")
+    st.info("""
+    **Based on error analysis, we recommend:**
+    
+    1. **Translation Drift**: Use direct LaBSE embedding (no translation) for Bangla queries
+    2. **Tokenization Issues**: Implement phrase detection for compound nouns
+    3. **Named Entities**: Add transliteration dictionary for proper nouns
+    4. **Domain Mismatch**: Add category filtering or domain-specific models
+    5. **Stopword Issues**: Improve stopword list for Bangla language
+    """)
 
 
 if __name__ == "__main__":

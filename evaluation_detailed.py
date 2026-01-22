@@ -103,40 +103,98 @@ def evaluate_with_comparison(query: str, relevant_urls: List[str], retriever: Re
 
 def error_analysis_bangla_vs_english():
     """
-    Analyze specific queries where Bangla failed but English succeeded.
-    Identifies translation errors and tokenization issues.
+    Analyze 5 ERROR CATEGORIES where retrieval fails.
+    
+    Error Categories:
+    1. Translation Drift - Query mistranslated losing semantic meaning
+    2. Tokenization Issues - Compound nouns split incorrectly
+    3. Named Entity Failures - Proper nouns not recognized across languages
+    4. Domain/Topic Mismatch - Retrieved docs from wrong category
+    5. Stopword/Function Word Issues - Common words causing noise
     """
     print("\n" + "="*80)
-    print("ERROR ANALYSIS: Why Bangla P@10 < English P@10?")
+    print("ERROR ANALYSIS: 5 Categories of Retrieval Failures")
     print("="*80)
     
-    # Test cases where Bangla performs worse
-    test_cases = [
+    # CATEGORY 1: Translation Drift
+    translation_cases = [
         {
             "query_bn": "ঢাকার যানজট",
             "query_en": "Dhaka traffic",
+            "error_type": "Translation Drift",
             "expected_issue": "Google Translate may not capture 'যানজট' (traffic jam) nuance",
             "relevant_url": "https://www.newagebd.net/post/country/285269/"
         },
         {
             "query_bn": "খুলনা",
             "query_en": "Khulna",
+            "error_type": "Translation Drift",
             "expected_issue": "Transliteration of city name may be mistranslated as 'Open' (খুল = open)",
             "relevant_url": "https://www.prothomalo.com/bangladesh/district/"
-        },
+        }
+    ]
+    
+    # CATEGORY 2: Tokenization Issues
+    tokenization_cases = [
         {
             "query_bn": "পদ্মা সেতু",
             "query_en": "Padma Bridge",
-            "expected_issue": "Compound noun 'পদ্মা সেতু' may lose context when tokenized",
+            "error_type": "Tokenization Issue",
+            "expected_issue": "Compound noun 'পদ্মা সেতু' may lose context when tokenized separately",
             "relevant_url": "https://www.prothomalo.com/bangladesh/district/m8rot9og72"
         }
     ]
     
+    # CATEGORY 3: Named Entity Failures
+    ner_cases = [
+        {
+            "query_bn": "রোহিঙ্গা শরণার্থী",
+            "query_en": "Rohingya refugee",
+            "error_type": "Named Entity Failure",
+            "expected_issue": "Rohingya transliteration varies (রোহিঙ্গা vs Rohingya vs Rohinja)",
+            "relevant_url": "https://www.thedailystar.net/rohingya-crisis"
+        }
+    ]
+    
+    # CATEGORY 4: Domain/Topic Mismatch
+    domain_cases = [
+        {
+            "query_bn": "করোনা",
+            "query_en": "Corona",
+            "error_type": "Domain Mismatch",
+            "expected_issue": "'করোনা' could mean COVID-19 or solar corona - retrieves astronomy articles",
+            "relevant_url": "https://www.prothomalo.com/bangladesh/health"
+        }
+    ]
+    
+    # CATEGORY 5: Stopword/Function Word Issues
+    stopword_cases = [
+        {
+            "query_bn": "এই বছরের বাজেট",
+            "query_en": "This year budget",
+            "error_type": "Stopword Issue",
+            "expected_issue": "'এই' (this) and 'বছরের' (year's) are common, causing high BM25 scores for unrelated docs",
+            "relevant_url": "https://www.prothomalo.com/business/economics"
+        }
+    ]
+    
+    test_cases = translation_cases + tokenization_cases + ner_cases + domain_cases + stopword_cases
+    
     retriever = Retriever()
     ranker = Ranker()
     
+    # Track errors by category
+    error_summary = {
+        "Translation Drift": 0,
+        "Tokenization Issue": 0,
+        "Named Entity Failure": 0,
+        "Domain Mismatch": 0,
+        "Stopword Issue": 0
+    }
+    
     for i, case in enumerate(test_cases, 1):
         print(f"\n--- Case {i}: {case['query_en']} vs {case['query_bn']} ---")
+        print(f"Error Type: {case['error_type']}")
         print(f"Expected Issue: {case['expected_issue']}")
         
         # Test English query
@@ -178,6 +236,7 @@ def error_analysis_bangla_vs_english():
             print(f"Δ Rank: {abs(rank_en - rank_bn)} positions")
         elif rank_en and not rank_bn:
             print("❌ FAILURE: English found relevant doc, Bangla did not")
+            error_summary[case['error_type']] += 1
         
         # Show translated query for debugging
         from src.module2_query_processing.query_processor import QueryProcessor
@@ -185,6 +244,16 @@ def error_analysis_bangla_vs_english():
         processed = qp.process_query(case['query_bn'])
         print(f"Google Translation: '{case['query_bn']}' → '{processed['translated_text']}'")
         print(f"Expected Translation: '{case['query_en']}'")
+    
+    # Print error summary
+    print("\n" + "="*80)
+    print("ERROR CATEGORY SUMMARY")
+    print("="*80)
+    print(f"{'Category':<30} | {'Failures':<10}")
+    print("-"*80)
+    for category, count in error_summary.items():
+        print(f"{category:<30} | {count:<10}")
+    print("="*80)
 
 
 def compare_direct_vs_translated_embedding():

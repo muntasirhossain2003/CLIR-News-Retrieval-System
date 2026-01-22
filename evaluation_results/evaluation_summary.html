@@ -1,0 +1,80 @@
+
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #2c3e50; }
+            h2 { color: #34495e; margin-top: 30px; }
+            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+            th { background-color: #3498db; color: white; }
+            tr:nth-child(even) { background-color: #f2f2f2; }
+            .summary { background-color: #e8f8f5; padding: 20px; border-radius: 5px; margin: 20px 0; }
+            .metric { font-size: 18px; font-weight: bold; color: #27ae60; }
+        </style>
+    </head>
+    <body>
+        <h1>CLIR System Evaluation Report</h1>
+        
+        <div class="summary">
+            <h2>Average Performance Across All Queries</h2>
+            <p><span class="metric">Precision@10:</span> 0.200 (How many top 10 results are relevant)</p>
+            <p><span class="metric">Recall@50:</span> 0.778 (Coverage of relevant documents)</p>
+            <p><span class="metric">MRR:</span> 0.583 (How quickly first relevant appears)</p>
+            <p><span class="metric">nDCG@10:</span> 0.563 (Ranking quality)</p>
+        </div>
+        
+        <h2>Detailed Results by Query</h2>
+        <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Query ID</th>
+      <th>Query</th>
+      <th>P@10</th>
+      <th>R@50</th>
+      <th>MRR</th>
+      <th>nDCG@10</th>
+      <th>Time (ms)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>Dhaka air pollution</td>
+      <td>0.200</td>
+      <td>1.000</td>
+      <td>0.500</td>
+      <td>0.580</td>
+      <td>1201.2</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Bangladesh economy</td>
+      <td>0.100</td>
+      <td>0.333</td>
+      <td>0.250</td>
+      <td>0.202</td>
+      <td>824.4</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Cricket match score</td>
+      <td>0.300</td>
+      <td>1.000</td>
+      <td>1.000</td>
+      <td>0.907</td>
+      <td>1430.0</td>
+    </tr>
+  </tbody>
+</table>
+        
+        <h2>System Configuration</h2>
+        <ul>
+            <li><strong>Retrieval Methods:</strong> Lexical (BM25), Semantic (LaBSE), Fuzzy (Transliteration)</li>
+            <li><strong>Fusion Weights:</strong> Semantic 60%, Lexical 20%, Fuzzy 20%</li>
+            <li><strong>Dataset:</strong> 5,194 documents (Bangla + English)</li>
+            <li><strong>Evaluation:</strong> 3 test queries with manual ground truth</li>
+        </ul>
+    </body>
+    </html>
+    

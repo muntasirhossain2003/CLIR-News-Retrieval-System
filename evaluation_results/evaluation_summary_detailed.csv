@@ -1,0 +1,4 @@
+﻿Query ID,Query,P@10,R@50,MRR,nDCG@10,Time (ms)
+1,Dhaka air pollution,0.200,1.000,0.500,0.580,1201.2
+2,Bangladesh economy,0.100,0.333,0.250,0.202,824.4
+3,Cricket match score,0.300,1.000,1.000,0.907,1430.0
