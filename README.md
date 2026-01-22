@@ -48,6 +48,7 @@ cd ..\..\..
 ```
 
 **Expected Output:**
+
 - `indexes/whoosh/` - Lexical index for BM25 retrieval
 - `indexes/semantic/` - FAISS index with embeddings
 - `indexes/faiss_index.bin` - FAISS binary index file
@@ -61,6 +62,7 @@ python check_indexes.py
 ```
 
 Should show:
+
 - ✓ LEXICAL INDEX (WHOOSH/BM25): ~5,600 documents
 - ✓ SEMANTIC INDEX: ~5,600 documents with 1024-dim embeddings
 
@@ -82,6 +84,7 @@ python "src\Module C — Retrieval Models\retrieval_pipeline.py" "করোন�
 ```
 
 **Available Methods:**
+
 - `bm25` - Lexical retrieval (BM25 algorithm)
 - `tfidf` - Lexical retrieval (TF-IDF)
 - `fuzzy` - Edit distance matching
@@ -98,6 +101,7 @@ streamlit run src\frontend\app.py
 Then open: http://localhost:8501
 
 **Features:**
+
 - 🌐 Cross-lingual search (Bangla ↔ English)
 - 📊 Multiple retrieval models
 - 🎯 Confidence scores
@@ -125,6 +129,7 @@ python query_pipeline.py "coronavirus" --target bn --json
 ```
 
 **Output includes:**
+
 - Detected language
 - Normalized query
 - Named entities (PERSON, LOCATION, ORG)
@@ -197,15 +202,18 @@ cd ..\..\..
 ### **Issue 3: Slow semantic indexing**
 
 **Expected:** First-time semantic indexing takes 10-20 minutes
+
 - Downloads mE5-large-instruct model (~2GB)
 - Generates 5,600 embeddings (1024-dim each)
 
 **Speed up:**
+
 - Use smaller model in `semantic_retrieval.py`: Change `DEFAULT_MODEL` to `"sentence-transformers/paraphrase-multilingual-mpnet-base-v2"` (faster, smaller)
 
 ### **Issue 4: Translation errors with googletrans**
 
 **Known issue:** googletrans sometimes fails. Fallback behavior:
+
 - Uses normalized query if translation fails
 - Logs warning in console
 
@@ -307,6 +315,7 @@ python build_unified_indexes.py
 ## 🎓 Academic Integrity
 
 This project uses:
+
 - Open-source libraries (cited in requirements.txt)
 - Pre-trained models (mE5-large-instruct, spaCy, Stanza)
 - News articles crawled from public websites (fair use for research)
