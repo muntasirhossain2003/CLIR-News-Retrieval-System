@@ -6,3 +6,24 @@ tqdm==4.66.1
 lxml==5.1.0
 selenium==4.18.1
 webdriver-manager==4.0.1
+
+# Indexing and Retrieval
+whoosh==2.7.4
+faiss-cpu==1.7.4
+numpy==1.24.3
+
+# NLP and Embeddings
+sentence-transformers==2.2.2
+transformers==4.35.0
+torch==2.1.0
+
+# Language Detection and Text Processing
+langdetect==1.0.9
+nltk==3.8.1
+
+# Fuzzy Matching
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.23.0
+
+# Evaluation
+scikit-learn==1.3.2

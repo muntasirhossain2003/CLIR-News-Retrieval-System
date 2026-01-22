@@ -10,5 +10,5 @@ venv/
 
 # Project specific
 logs/
-data/
+# data/
 .gemini/
