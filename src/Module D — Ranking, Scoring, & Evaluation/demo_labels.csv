@@ -1,0 +1,7 @@
+query_id,query_text,doc_id,doc_title,doc_url,language,relevant,confidence,annotator,notes
+q001,climate change,doc_1,Climate Crisis in Bangladesh,https://example.com/doc_1,english,True,3,demo_annotator,Sample labeling for demo
+q001,climate change,doc_2,Sports News,https://example.com/doc_2,english,False,3,demo_annotator,Sample labeling for demo
+q001,climate change,doc_3,Rising Sea Levels,https://example.com/doc_3,english,True,2,demo_annotator,Sample labeling for demo
+q002,education,doc_5,School System,https://example.com/doc_5,english,True,3,demo_annotator,Sample labeling for demo
+q002,education,doc_6,University Rankings,https://example.com/doc_6,english,True,2,demo_annotator,Sample labeling for demo
+q002,education,doc_7,Political News,https://example.com/doc_7,english,False,3,demo_annotator,Sample labeling for demo

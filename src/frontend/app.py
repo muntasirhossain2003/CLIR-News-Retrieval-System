@@ -641,6 +641,196 @@ with tab2:
                 st.dataframe(df, use_container_width=True)
 
 
+# Add Module D - Evaluation Section
+st.divider()
+st.markdown("## Evaluation & Metrics")
+
+# Add evaluation module to path
+try:
+    module_d_path = PROJECT_ROOT / "src" / "Module D — Ranking, Scoring, & Evaluation"
+    if str(module_d_path) not in sys.path:
+        sys.path.insert(0, str(module_d_path))
+    
+    from evaluation_metrics import EvaluationMetrics
+    from error_analysis import ErrorAnalyzer
+    from relevance_labeling import RelevanceLabeler
+    from ranking_scorer import RankingScorer
+    
+    EVALUATION_AVAILABLE = True
+except ImportError:
+    EVALUATION_AVAILABLE = False
+
+if EVALUATION_AVAILABLE:
+    eval_col1, eval_col2, eval_col3 = st.columns(3)
+    
+    with eval_col1:
+        if st.button("📈 Run Evaluation", key="eval_btn"):
+            st.info("🔄 Loading evaluation system...")
+            
+            try:
+                import json
+                
+                # Load test queries
+                test_queries_path = module_d_path / "test_queries.json"
+                if test_queries_path.exists():
+                    with open(test_queries_path, "r", encoding="utf-8") as f:
+                        test_queries = json.load(f)
+                    
+                    st.success(f"✅ Loaded {len(test_queries)} test queries")
+                    
+                    # Show sample metrics
+                    st.markdown("### Sample Evaluation Results")
+                    
+                    total_queries = len(test_queries)
+                    total_relevant = sum(len(q.get("relevant_docs", [])) for q in test_queries.values())
+                    total_retrieved = sum(len(q.get("retrieved_docs", [])) for q in test_queries.values())
+                    
+                    metric_col1, metric_col2, metric_col3 = st.columns(3)
+                    with metric_col1:
+                        st.metric("Test Queries", total_queries)
+                    with metric_col2:
+                        st.metric("Relevant Docs", total_relevant)
+                    with metric_col3:
+                        st.metric("Retrieved Docs", total_retrieved)
+                    
+                    # Calculate and display metrics
+                    st.markdown("### Metrics Breakdown")
+                    
+                    metrics_data = []
+                    for query_id, query_data in test_queries.items():
+                        relevant = query_data.get("relevant_docs", [])
+                        retrieved = query_data.get("retrieved_docs", [])
+                        
+                        p10 = EvaluationMetrics.precision_at_k(relevant, retrieved, 10)
+                        r50 = EvaluationMetrics.recall_at_k(relevant, retrieved, 50)
+                        ndcg = EvaluationMetrics.ndcg(relevant, retrieved, 10)
+                        mrr = EvaluationMetrics.reciprocal_rank(relevant, retrieved)
+                        
+                        metrics_data.append({
+                            "Query ID": query_id,
+                            "P@10": f"{p10:.3f}",
+                            "R@50": f"{r50:.3f}",
+                            "nDCG@10": f"{ndcg:.3f}",
+                            "MRR": f"{mrr:.3f}"
+                        })
+                    
+                    metrics_df = pd.DataFrame(metrics_data)
+                    st.dataframe(metrics_df, use_container_width=True)
+                    
+                    # Batch evaluation
+                    batch_queries = {
+                        qid: {
+                            "relevant": q.get("relevant_docs", []),
+                            "retrieved": q.get("retrieved_docs", [])
+                        }
+                        for qid, q in test_queries.items()
+                    }
+                    
+                    per_query, summary = EvaluationMetrics.evaluate_batch(batch_queries, k=10)
+                    
+                    st.markdown("### Overall Performance")
+                    
+                    perf_col1, perf_col2, perf_col3, perf_col4 = st.columns(4)
+                    with perf_col1:
+                        st.metric("Avg P@10", f"{summary['mean_precision_at_10']:.3f}", 
+                                 "✓" if summary['mean_precision_at_10'] >= 0.6 else "✗")
+                    with perf_col2:
+                        st.metric("Avg R@50", f"{summary['mean_recall_at_50']:.3f}",
+                                 "✓" if summary['mean_recall_at_50'] >= 0.5 else "✗")
+                    with perf_col3:
+                        st.metric("Avg nDCG@10", f"{summary['mean_ndcg_at_10']:.3f}",
+                                 "✓" if summary['mean_ndcg_at_10'] >= 0.5 else "✗")
+                    with perf_col4:
+                        st.metric("Avg MRR", f"{summary['mean_reciprocal_rank']:.3f}",
+                                 "✓" if summary['mean_reciprocal_rank'] >= 0.4 else "✗")
+                    
+                    st.success("✅ Evaluation Complete!")
+                else:
+                    st.warning("⚠️ Test queries file not found")
+                    
+            except Exception as e:
+                st.error(f"❌ Evaluation error: {e}")
+    
+    with eval_col2:
+        if st.button("🔍 Analyze Errors", key="error_btn"):
+            st.info("🔄 Loading error analyzer...")
+            
+            try:
+                analyzer = ErrorAnalyzer()
+                
+                # Add sample errors for demonstration
+                analyzer.add_translation_failure(
+                    query_id="demo_1",
+                    query_text="example query",
+                    query_language="english",
+                    original_query="চেয়ার",
+                    mistranslated_query="Chairman",
+                    expected_docs=["doc_1"],
+                    retrieved_docs=["doc_2"],
+                    example="Translation error detected"
+                )
+                
+                st.markdown("### Error Analysis Summary")
+                
+                summary = analyzer.summarize_errors()
+                error_col1, error_col2 = st.columns(2)
+                
+                with error_col1:
+                    st.metric("Total Errors", len(analyzer.error_cases))
+                
+                with error_col2:
+                    st.metric("Error Types", len(summary))
+                
+                if summary:
+                    st.markdown("### Errors by Type")
+                    error_data = [{"Error Type": k, "Count": v} for k, v in summary.items()]
+                    error_df = pd.DataFrame(error_data)
+                    st.bar_chart(error_df.set_index("Error Type"))
+                
+                st.info("✅ Error analysis complete. Check Module D for detailed reports.")
+                    
+            except Exception as e:
+                st.error(f"❌ Error analysis failed: {e}")
+    
+    with eval_col3:
+        if st.button("🏷️ View Labels", key="labels_btn"):
+            st.info("🔄 Loading relevance labels...")
+            
+            try:
+                labeler = RelevanceLabeler()
+                
+                # Try to load existing labels
+                labels_path = module_d_path / "labels.csv"
+                if labels_path.exists():
+                    labeler.load_from_csv(str(labels_path))
+                    stats = labeler.get_statistics()
+                    
+                    st.markdown("### Labeling Statistics")
+                    
+                    label_col1, label_col2, label_col3, label_col4 = st.columns(4)
+                    
+                    with label_col1:
+                        st.metric("Total Labels", stats['total_labels'])
+                    with label_col2:
+                        st.metric("Relevant", stats['relevant_count'])
+                    with label_col3:
+                        st.metric("Not Relevant", stats['not_relevant_count'])
+                    with label_col4:
+                        st.metric("Queries", stats['unique_queries'])
+                    
+                    st.markdown(f"**Relevant %**: {stats['relevant_percentage']:.1f}%")
+                    st.markdown(f"**Avg Confidence**: {stats['average_confidence']:.2f}/3.0")
+                else:
+                    st.warning("No labels file found. Create one using Module D.")
+                    st.info("Generate template: `python evaluate.py --create-template`")
+                    
+            except Exception as e:
+                st.error(f"❌ Label loading failed: {e}")
+
+else:
+    st.warning("⚠️ Module D (Evaluation) not available. Install/configure required.")
+
+
 # Footer
 st.divider()
 st.markdown(

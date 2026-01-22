@@ -1,0 +1,131 @@
+{
+  "q001": {
+    "query_text": "climate change Bangladesh",
+    "language": "english",
+    "relevant_docs": [
+      "climate_bd_001",
+      "climate_bd_002",
+      "climate_bd_003"
+    ],
+    "retrieved_docs": [
+      "climate_bd_001",
+      "sports_news_001",
+      "climate_bd_002",
+      "politics_bd_001",
+      "climate_bd_003"
+    ]
+  },
+  "q002": {
+    "query_text": "COVID-19 pandemic Bangladesh",
+    "language": "english",
+    "relevant_docs": [
+      "covid_bd_001",
+      "covid_bd_002",
+      "covid_health_001"
+    ],
+    "retrieved_docs": [
+      "covid_bd_001",
+      "covid_bd_002",
+      "food_prices_001",
+      "covid_health_001",
+      "covid_vaccine_001"
+    ]
+  },
+  "q003": {
+    "query_text": "জলবায়ু পরিবর্তন",
+    "language": "bangla",
+    "relevant_docs": [
+      "climate_bn_001",
+      "climate_bn_002",
+      "environment_bn_001"
+    ],
+    "retrieved_docs": [
+      "climate_bn_001",
+      "climate_bn_002",
+      "weather_bn_001",
+      "environment_bn_001",
+      "politics_bn_001"
+    ]
+  },
+  "q004": {
+    "query_text": "করোনা ভাইরাস",
+    "language": "bangla",
+    "relevant_docs": [
+      "covid_bn_001",
+      "covid_bn_002",
+      "health_bn_001"
+    ],
+    "retrieved_docs": [
+      "covid_bn_001",
+      "covid_bn_002",
+      "health_bn_001",
+      "sports_bn_001",
+      "science_bn_001"
+    ]
+  },
+  "q005": {
+    "query_text": "Bangladesh politics election",
+    "language": "english",
+    "relevant_docs": [
+      "politics_en_001",
+      "politics_en_002",
+      "election_en_001"
+    ],
+    "retrieved_docs": [
+      "politics_en_001",
+      "economics_en_001",
+      "politics_en_002",
+      "sports_en_001",
+      "election_en_001",
+      "politics_en_003"
+    ]
+  },
+  "q006": {
+    "query_text": "শিক্ষা ব্যবস্থা",
+    "language": "bangla",
+    "relevant_docs": [
+      "education_bn_001",
+      "education_bn_002",
+      "school_bn_001"
+    ],
+    "retrieved_docs": [
+      "education_bn_001",
+      "school_bn_001",
+      "politics_bn_001",
+      "education_bn_002",
+      "health_bn_001"
+    ]
+  },
+  "q007": {
+    "query_text": "economic development",
+    "language": "english",
+    "relevant_docs": [
+      "economy_en_001",
+      "economy_en_002",
+      "business_en_001"
+    ],
+    "retrieved_docs": [
+      "economy_en_001",
+      "sports_en_001",
+      "economy_en_002",
+      "politics_en_001",
+      "business_en_001"
+    ]
+  },
+  "q008": {
+    "query_text": "technology innovation",
+    "language": "english",
+    "relevant_docs": [
+      "tech_en_001",
+      "tech_en_002",
+      "innovation_en_001"
+    ],
+    "retrieved_docs": [
+      "tech_en_001",
+      "politics_en_001",
+      "tech_en_002",
+      "health_en_001",
+      "innovation_en_001"
+    ]
+  }
+}
