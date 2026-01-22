@@ -10,6 +10,7 @@ class Ranker:
     
     def normalize_scores(self, results: List[Dict]) -> List[Dict]:
         """Apply Min-Max normalization to scale scores to [0, 1]."""
+        if not results:
             return results
         
         # Extract scores
@@ -33,34 +34,41 @@ class Ranker:
     def merge_and_rank(
         self, 
         lexical_results: List[Dict], 
-        semantic_results: List[Dict], 
-        alpha: float = 0.5
+        semantic_results: List[Dict],
+        fuzzy_results: List[Dict] = None,
+        alpha: float = 0.5,
+        fuzzy_weight: float = 0.15
     ) -> Dict:
-        """Merge lexical and semantic results using weighted fusion."""
+        """Merge lexical, semantic, and fuzzy results using weighted fusion."""
         lexical_normalized = self.normalize_scores(lexical_results.copy())
         semantic_normalized = self.normalize_scores(semantic_results.copy())
+        fuzzy_normalized = self.normalize_scores(fuzzy_results.copy()) if fuzzy_results else []
         
         # Create dictionaries for quick lookup
         lexical_dict = {r['url']: r['normalized_score'] for r in lexical_normalized}
         semantic_dict = {r['url']: r['normalized_score'] for r in semantic_normalized}
+        fuzzy_dict = {r['url']: r['normalized_score'] for r in fuzzy_normalized}
         
-        all_urls = set(lexical_dict.keys()) | set(semantic_dict.keys())
+        all_urls = set(lexical_dict.keys()) | set(semantic_dict.keys()) | set(fuzzy_dict.keys())
         merged = []
+        
         for url in all_urls:
             lexical_score = lexical_dict.get(url, 0.0)
             semantic_score = semantic_dict.get(url, 0.0)
+            fuzzy_score = fuzzy_dict.get(url, 0.0)
             
-            final_score = (alpha * semantic_score) + ((1 - alpha) * lexical_score)
+            # Weighted fusion: alpha for semantic, (1-alpha-fuzzy_weight) for lexical, fuzzy_weight for fuzzy
+            if fuzzy_results:
+                final_score = (alpha * semantic_score) + ((1 - alpha - fuzzy_weight) * lexical_score) + (fuzzy_weight * fuzzy_score)
+            else:
+                final_score = (alpha * semantic_score) + ((1 - alpha) * lexical_score)
+            
+            # Get article metadata
             article = None
-            for r in semantic_normalized:
+            for r in semantic_normalized + lexical_normalized + fuzzy_normalized:
                 if r['url'] == url:
                     article = r
                     break
-            if article is None:
-                for r in lexical_normalized:
-                    if r['url'] == url:
-                        article = r
-                        break
             
             if article:
                 merged.append({
@@ -69,10 +77,12 @@ class Ranker:
                     'lang': article.get('lang', ''),
                     'lexical_score': lexical_score,
                     'semantic_score': semantic_score,
+                    'fuzzy_score': fuzzy_score,
                     'final_score': final_score
                 })
         
         merged.sort(key=lambda x: x['final_score'], reverse=True)
+        
         warning = None
         if merged and merged[0]['final_score'] < 0.2:
             warning = "Low confidence: Top result has score < 0.2"
@@ -88,19 +98,28 @@ class Ranker:
         relevant_docs_ids: Set[str]
     ) -> Dict[str, float]:
         """Calculate evaluation metrics: Precision@10, Recall@50, MRR, nDCG@10."""
+        metrics = {}
+        
+        # Precision@10
         top_10 = retrieved_docs[:10]
         relevant_in_top_10 = sum(1 for doc in top_10 if doc in relevant_docs_ids)
         metrics['precision@10'] = relevant_in_top_10 / 10.0 if len(top_10) >= 10 else relevant_in_top_10 / len(top_10)
+        
+        # Recall@50
         top_50 = retrieved_docs[:50]
         relevant_in_top_50 = sum(1 for doc in top_50 if doc in relevant_docs_ids)
         total_relevant = len(relevant_docs_ids)
         metrics['recall@50'] = relevant_in_top_50 / total_relevant if total_relevant > 0 else 0.0
+        
+        # MRR
         mrr = 0.0
         for rank, doc in enumerate(retrieved_docs, start=1):
             if doc in relevant_docs_ids:
                 mrr = 1.0 / rank
                 break
         metrics['mrr'] = mrr
+        
+        # nDCG@10
         metrics['ndcg@10'] = self._calculate_ndcg(retrieved_docs[:10], relevant_docs_ids, k=10)
         
         return metrics

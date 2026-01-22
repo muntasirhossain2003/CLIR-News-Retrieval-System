@@ -128,27 +128,11 @@ def generate_embeddings(
     min_tokens: int = 50,
     batch_size: int = 32
 ) -> str:
-    """
-    Main function to generate and save embeddings.
-    
-    Args:
-        data_dir: Directory containing raw JSON files
-        output_file: Path to save the pickle file
-        model_name: Sentence transformer model name
-        min_tokens: Minimum token count for filtering
-        batch_size: Batch size for embedding generation
-        
-    Returns:
-        Path to saved pickle file
-    """
-    # Create output directory if it doesn't exist
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Initialize generator
     generator = EmbeddingGenerator(model_name=model_name)
     
-    # Process articles
     articles = generator.process_articles(
         data_dir=data_dir,
         min_tokens=min_tokens,
@@ -156,72 +140,24 @@ def generate_embeddings(
     )
     
     if not articles:
-        logging.error("No articles to save!")
         return ""
     
-    # Save to pickle
-    logging.info(f"Saving {len(articles)} articles to {output_file}")
     save_embeddings(articles, output_file)
-    
-    # Log statistics
-    logging.info("\n" + "="*50)
-    logging.info("EMBEDDING GENERATION COMPLETE")
-    logging.info("="*50)
-    logging.info(f"Total articles: {len(articles)}")
-    logging.info(f"Embedding dimension: {articles[0]['embedding'].shape[0]}")
-    
-    # Language distribution
-    bangla_count = sum(1 for a in articles if a.get('language') == 'bangla')
-    english_count = sum(1 for a in articles if a.get('language') == 'english')
-    logging.info(f"Bangla articles: {bangla_count}")
-    logging.info(f"English articles: {english_count}")
-    
-    # Token statistics
-    token_counts = [a['token_count'] for a in articles]
-    logging.info(f"Avg tokens: {np.mean(token_counts):.1f}")
-    logging.info(f"Min tokens: {np.min(token_counts)}")
-    logging.info(f"Max tokens: {np.max(token_counts)}")
-    logging.info(f"Output file: {output_file}")
-    logging.info("="*50)
-    
     return output_file
 
 
 def save_embeddings(articles: List[Dict], output_file: str):
-    """
-    Save articles with embeddings to pickle file.
-    
-    Args:
-        articles: List of article dictionaries with embeddings
-        output_file: Path to output pickle file
-    """
     with open(output_file, 'wb') as f:
         pickle.dump(articles, f, protocol=pickle.HIGHEST_PROTOCOL)
-    
-    logging.info(f"Saved {len(articles)} articles to {output_file}")
 
 
 def load_embeddings(pickle_file: str) -> List[Dict]:
-    """
-    Load articles with embeddings from pickle file.
-    
-    Args:
-        pickle_file: Path to pickle file
-        
-    Returns:
-        List of article dictionaries with embeddings
-    """
-    logging.info(f"Loading embeddings from {pickle_file}")
-    
     with open(pickle_file, 'rb') as f:
         articles = pickle.load(f)
-    
-    logging.info(f"Loaded {len(articles)} articles")
     return articles
 
 
 if __name__ == "__main__":
-    # Run embedding generation
     generate_embeddings(
         data_dir="data/raw",
         output_file="data/embeddings/articles_with_embeddings.pkl",
