@@ -36,19 +36,7 @@ _bm25_index = None
 
 
 class BM25Index:
-    """
-    BM25 Index for lexical document retrieval.
 
-    Uses rank-bm25 library for efficient BM25 scoring.
-    Supports language-specific tokenization.
-
-    Attributes:
-        bm25: The BM25Okapi instance
-        doc_ids: List of document IDs in index order
-        tokenized_corpus: Pre-tokenized documents
-        k1: Term frequency saturation parameter (default: 1.5)
-        b: Document length normalization parameter (default: 0.75)
-    """
 
     def __init__(self, k1: float = 1.5, b: float = 0.75):
         """
