@@ -1,12 +1,3 @@
-"""
-Build Index Pipeline
-
-Main script to build both lexical and semantic indexes from crawled data.
-
-Usage:
-    python -m src.module1_data_acquisition.indexing.build_index --data data/metadata.csv --limit 0
-"""
-
 import os
 import sys
 import json
@@ -20,17 +11,25 @@ from tqdm import tqdm
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.module1_data_acquisition.indexing.language_detector import LanguageDetector
-from src.module1_data_acquisition.indexing.preprocessor import TextPreprocessor
-from src.module1_data_acquisition.indexing.lexical_indexer import LexicalIndexer
-from src.module1_data_acquisition.indexing.semantic_indexer import SemanticIndexer
+# Add current directory to path for local imports
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
+
+from language_detector import LanguageDetector
+from preprocessor import TextPreprocessor
+from lexical_indexer import LexicalIndexer
+from semantic_indexer import SemanticIndexer
+
+# Create logs directory in project root
+logs_dir = os.path.join(project_root, "logs")
+os.makedirs(logs_dir, exist_ok=True)
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/indexing.log", encoding="utf-8"),
+        logging.FileHandler(os.path.join(logs_dir, "indexing.log"), encoding="utf-8"),
         logging.StreamHandler(),
     ],
 )
@@ -38,16 +37,10 @@ logger = logging.getLogger(__name__)
 
 
 def load_documents(metadata_path: str, limit: int = 0) -> list:
-    """
-    Load documents from metadata CSV and their JSON files.
+    # Resolve path relative to project root if not absolute
+    if not os.path.isabs(metadata_path):
+        metadata_path = os.path.join(project_root, metadata_path)
 
-    Args:
-        metadata_path: Path to metadata.csv
-        limit: Maximum number of documents to load (0 = all)
-
-    Returns:
-        List of document dictionaries
-    """
     logger.info(f"Loading documents from {metadata_path}")
 
     # Read metadata
@@ -64,22 +57,20 @@ def load_documents(metadata_path: str, limit: int = 0) -> list:
 
     for idx, row in tqdm(df.iterrows(), total=len(df), desc="Loading documents"):
         try:
-            filepath = row["filepath"]
+            # Resolve file path relative to project root
+            filepath = os.path.join(
+                project_root,
+                "data",
+                "raw",
+                row["language"],
+                row["source"],
+                row["filename"],
+            )
 
-            # Handle both absolute and relative paths
             if not os.path.exists(filepath):
-                # Try relative to project root
-                filepath = os.path.join(
-                    project_root,
-                    "data",
-                    "raw",
-                    row["language"],
-                    row["source"],
-                    row["filename"],
+                logger.warning(
+                    f"File not found: {filepath} (lang={row['language']}, source={row['source']}, file={row['filename']})"
                 )
-
-            if not os.path.exists(filepath):
-                logger.warning(f"File not found: {filepath}")
                 continue
 
             # Load JSON
@@ -110,17 +101,6 @@ def load_documents(metadata_path: str, limit: int = 0) -> list:
 def process_documents(
     documents: list, lang_detector: LanguageDetector, preprocessor: TextPreprocessor
 ) -> list:
-    """
-    Process documents: detect language, preprocess, extract entities.
-
-    Args:
-        documents: List of raw documents
-        lang_detector: Language detector instance
-        preprocessor: Text preprocessor instance
-
-    Returns:
-        List of processed documents with additional fields
-    """
     logger.info("Processing documents...")
 
     processed = []
@@ -161,10 +141,6 @@ def process_documents(
 def build_lexical_index(documents: list, index_dir: str = "indexes/whoosh"):
     """
     Build WHOOSH lexical index.
-
-    Args:
-        documents: List of processed documents
-        index_dir: Directory to save index
     """
     logger.info("=" * 60)
     logger.info("Building LEXICAL INDEX (WHOOSH/BM25)")
@@ -201,17 +177,15 @@ def build_lexical_index(documents: list, index_dir: str = "indexes/whoosh"):
 def build_semantic_index(documents: list, index_dir: str = "indexes/semantic"):
     """
     Build semantic index with embeddings.
-
-    Args:
-        documents: List of processed documents
-        index_dir: Directory to save index
     """
+
     logger.info("=" * 60)
     logger.info("BUILDING SEMANTIC INDEX (Embeddings)")
     logger.info("=" * 60)
 
+    # Use mE5-large-instruct for best Bangla-English cross-lingual performance
     indexer = SemanticIndexer(
-        model_name="paraphrase-multilingual-MiniLM-L12-v2", index_dir=index_dir
+        model_name="intfloat/multilingual-e5-large-instruct", index_dir=index_dir
     )
 
     # Encode documents
@@ -228,8 +202,60 @@ def build_semantic_index(documents: list, index_dir: str = "indexes/semantic"):
     return indexer
 
 
+def build_indexes(
+    metadata_path: str,
+    limit: int = 0,
+    index_base_dir: str = "indexes",
+    build_lexical: bool = True,
+    build_semantic: bool = True,
+) -> bool:
+    try:
+        # Resolve index directory relative to project root if not absolute
+        if not os.path.isabs(index_base_dir):
+            index_base_dir = os.path.join(project_root, index_base_dir)
+
+        # Load documents
+        documents = load_documents(metadata_path, limit=limit)
+
+        if not documents:
+            logger.error("No documents loaded.")
+            return False
+
+        # Initialize language detector and preprocessor
+        logger.info("Initializing language detection and preprocessing...")
+        lang_detector = LanguageDetector()
+        preprocessor = TextPreprocessor()
+
+        # Process documents
+        processed_docs = process_documents(documents, lang_detector, preprocessor)
+
+        # Build indexes
+        if build_lexical:
+            lexical_dir = os.path.join(index_base_dir, "whoosh")
+            build_lexical_index(processed_docs, index_dir=lexical_dir)
+
+        if build_semantic:
+            semantic_dir = os.path.join(index_base_dir, "semantic")
+            build_semantic_index(processed_docs, index_dir=semantic_dir)
+
+        # Summary
+        total_docs = len(processed_docs)
+        bn_docs = sum(1 for d in processed_docs if d["language"] == "bangla")
+        en_docs = sum(1 for d in processed_docs if d["language"] == "english")
+
+        logger.info(f"Total documents indexed: {total_docs}")
+        logger.info(f"  Bangla: {bn_docs}")
+        logger.info(f"  English: {en_docs}")
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Indexing failed: {e}", exc_info=True)
+        return False
+
+
 def main():
-    """Main indexing pipeline."""
+    """Main indexing pipeline (CLI)."""
     parser = argparse.ArgumentParser(description="Build CLIR indexes")
     parser.add_argument(
         "--data", default="data/metadata.csv", help="Path to metadata CSV"
@@ -250,45 +276,19 @@ def main():
     logger.info("CLIR INDEXING PIPELINE")
     logger.info("=" * 60)
 
-    try:
-        # Initialize components
-        logger.info("Initializing NLP components...")
-        lang_detector = LanguageDetector()
-        preprocessor = TextPreprocessor()
+    success = build_indexes(
+        metadata_path=args.data,
+        limit=args.limit,
+        build_lexical=not args.skip_lexical,
+        build_semantic=not args.skip_semantic,
+    )
 
-        # Load documents
-        documents = load_documents(args.data, limit=args.limit)
-
-        if not documents:
-            logger.error("No documents loaded. Exiting.")
-            return
-
-        # Process documents
-        processed_docs = process_documents(documents, lang_detector, preprocessor)
-
-        # Build indexes
-        if not args.skip_lexical:
-            build_lexical_index(processed_docs)
-
-        if not args.skip_semantic:
-            build_semantic_index(processed_docs)
-
+    if success:
         logger.info("=" * 60)
         logger.info("✓ INDEXING COMPLETE")
         logger.info("=" * 60)
-
-        # Summary
-        total_docs = len(processed_docs)
-        bn_docs = sum(1 for d in processed_docs if d["language"] == "bangla")
-        en_docs = sum(1 for d in processed_docs if d["language"] == "english")
-
-        logger.info(f"Total documents indexed: {total_docs}")
-        logger.info(f"  Bangla: {bn_docs}")
-        logger.info(f"  English: {en_docs}")
-        logger.info(f"Indexes saved in: ./indexes/")
-
-    except Exception as e:
-        logger.error(f"Indexing failed: {e}", exc_info=True)
+    else:
+        logger.error("Indexing failed")
         sys.exit(1)
 
 

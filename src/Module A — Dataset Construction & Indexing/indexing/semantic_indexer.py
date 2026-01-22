@@ -1,30 +1,31 @@
-"""
-Semantic Indexer using Sentence Transformers
-
-Creates dense vector representations for semantic similarity search.
-Uses multilingual embeddings for cross-lingual retrieval.
-"""
-
 import os
 import json
 import numpy as np
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
+# Check if FAISS is available
+try:
+    import faiss
+
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    logger.warning("FAISS not installed. Install with: pip install faiss-cpu")
+
+
+# Best multilingual model for CLIR (Cross-Lingual Information Retrieval)
+DEFAULT_MODEL = "intfloat/multilingual-e5-large-instruct"
+
 
 class SemanticIndexer:
-    """
-    Semantic index using multilingual sentence embeddings.
-    Supports cross-lingual similarity search with cosine distance.
-    """
 
     def __init__(
         self,
-        model_name: str = "paraphrase-multilingual-MiniLM-L12-v2",
+        model_name: str = DEFAULT_MODEL,
         index_dir: str = "indexes/semantic",
     ):
         """
@@ -39,6 +40,7 @@ class SemanticIndexer:
         self.model = None
         self.embeddings = None
         self.doc_ids = []
+        self.faiss_index = None
 
         os.makedirs(self.index_dir, exist_ok=True)
 
@@ -55,6 +57,29 @@ class SemanticIndexer:
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
             raise
+
+    def _build_faiss_index(self) -> Optional[object]:
+        """Build FAISS index from embeddings."""
+        if not FAISS_AVAILABLE:
+            logger.warning("FAISS not available, using numpy-based search")
+            return None
+
+        if self.embeddings is None:
+            return None
+
+        dim = self.embeddings.shape[1]
+
+        # Normalize embeddings for cosine similarity
+        normalized = self.embeddings.copy()
+        norms = np.linalg.norm(normalized, axis=1, keepdims=True)
+        normalized = normalized / (norms + 1e-10)
+
+        # Use IndexFlatIP for inner product (equals cosine for normalized vectors)
+        self.faiss_index = faiss.IndexFlatIP(dim)
+        self.faiss_index.add(normalized.astype(np.float32))
+
+        logger.info(f"✓ FAISS index built ({self.faiss_index.ntotal} vectors)")
+        return self.faiss_index
 
     def encode_documents(
         self, documents: List[Dict], batch_size: int = 32
@@ -81,8 +106,12 @@ class SemanticIndexer:
             body = doc.get("body", "")
 
             # Truncate body to avoid exceeding model's max length
-            # Most sentence transformers have 512 token limit
+            # mE5-large-instruct has 512 token limit
             combined = f"{title} {body}"[:2000]  # ~500 tokens
+
+            # mE5-instruct models require "passage: " prefix for documents
+            if "e5" in self.model_name.lower():
+                combined = f"passage: {combined}"
 
             texts.append(combined)
             self.doc_ids.append(doc["doc_id"])
@@ -90,10 +119,18 @@ class SemanticIndexer:
         # Encode in batches with progress
         logger.info("Generating embeddings (this may take a few minutes)...")
         self.embeddings = self.model.encode(
-            texts, batch_size=batch_size, show_progress_bar=True, convert_to_numpy=True
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=True,
+            convert_to_numpy=True,
+            normalize_embeddings=True,  # Normalize for FAISS inner product search
         )
 
         logger.info(f"✓ Generated embeddings: shape {self.embeddings.shape}")
+
+        # Build FAISS index
+        self._build_faiss_index()
+
         return self.embeddings
 
     def save_index(self):
@@ -140,11 +177,14 @@ class SemanticIndexer:
         with open(doc_ids_path, "r", encoding="utf-8") as f:
             self.doc_ids = json.load(f)
 
+        # Build FAISS index from loaded embeddings
+        self._build_faiss_index()
+
         logger.info(f"✓ Loaded {len(self.doc_ids)} document embeddings")
 
     def search(self, query_text: str, top_k: int = 10) -> List[Tuple[str, float]]:
         """
-        Search for similar documents using cosine similarity.
+        Search for similar documents using FAISS.
 
         Args:
             query_text: Query string
@@ -156,19 +196,32 @@ class SemanticIndexer:
         if self.embeddings is None:
             self.load_index()
 
-        # Encode query
-        query_embedding = self.model.encode([query_text], convert_to_numpy=True)
+        # Encode query and normalize
+        query_embedding = self.model.encode(
+            [query_text], convert_to_numpy=True, normalize_embeddings=True
+        )
 
-        # Compute cosine similarities
-        similarities = cosine_similarity(query_embedding, self.embeddings)[0]
+        # Use FAISS if available
+        if FAISS_AVAILABLE and self.faiss_index is not None:
+            # FAISS search
+            scores, indices = self.faiss_index.search(
+                query_embedding.astype(np.float32), top_k
+            )
 
-        # Get top-k indices
-        top_indices = np.argsort(similarities)[::-1][:top_k]
+            results = []
+            for idx, score in zip(indices[0], scores[0]):
+                if idx >= 0 and idx < len(self.doc_ids):
+                    results.append((self.doc_ids[idx], float(score)))
+            return results
+        else:
+            # Fallback to numpy-based search
+            from sklearn.metrics.pairwise import cosine_similarity
 
-        # Return doc_ids and scores
-        results = [(self.doc_ids[idx], float(similarities[idx])) for idx in top_indices]
-
-        return results
+            similarities = cosine_similarity(query_embedding, self.embeddings)[0]
+            top_indices = np.argsort(similarities)[::-1][:top_k]
+            return [
+                (self.doc_ids[idx], float(similarities[idx])) for idx in top_indices
+            ]
 
     def get_embedding(self, text: str) -> np.ndarray:
         """
@@ -195,4 +248,6 @@ class SemanticIndexer:
             "embedding_dimension": self.embeddings.shape[1],
             "model": self.model_name,
             "index_dir": self.index_dir,
+            "faiss_available": FAISS_AVAILABLE,
+            "faiss_index_built": self.faiss_index is not None,
         }

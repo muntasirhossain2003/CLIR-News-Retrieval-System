@@ -6,8 +6,8 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.module1_data_acquisition.crawlers.bangla_crawlers import get_bangla_crawlers
-from src.module1_data_acquisition.crawlers.english_crawlers import get_english_crawlers
+from src.MO.crawlers.bangla_crawlers import get_bangla_crawlers
+from src.MO.crawlers.english_crawlers import get_english_crawlers
 
 def main():
     parser = argparse.ArgumentParser(description="CLIR Assignment Crawler")
