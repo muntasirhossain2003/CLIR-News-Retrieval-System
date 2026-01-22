@@ -110,6 +110,240 @@ DCG = Σ (relevance / log₂(position + 1))
 nDCG = DCG / IDCG
 ```
 
+### Example: Step-by-Step Metric Calculation
+
+#### Scenario Setup
+
+**Query**: "Dhaka air pollution" (বায়ু দূষণ ঢাকা)
+
+**Ground Truth** (manually labeled relevant documents):
+
+- doc_A: "Air quality crisis in Dhaka reaches dangerous levels"
+- doc_C: "ঢাকার বায়ু দূষণ স্বাস্থ্যের জন্য হুমকি"
+- doc_F: "Pollution monitoring in Bangladesh capital"
+- doc_G: "বাংলাদেশের রাজধানীতে পরিবেশ দূষণ"
+
+**Total relevant documents**: 4
+
+**System Retrieved Results** (what our CLIR system returned, ranked by score):
+
+| Rank | Document | Title                          | Relevant? | Score |
+| ---- | -------- | ------------------------------ | --------- | ----- |
+| 1    | doc_A    | Air quality crisis in Dhaka... | ✓ Yes     | 0.92  |
+| 2    | doc_B    | Traffic congestion in Dhaka    | ✗ No      | 0.85  |
+| 3    | doc_C    | ঢাকার বায়ু দূষণ...            | ✓ Yes     | 0.81  |
+| 4    | doc_D    | Political news Bangladesh      | ✗ No      | 0.76  |
+| 5    | doc_E    | Weather forecast Dhaka         | ✗ No      | 0.72  |
+| 6    | doc_F    | Pollution monitoring...        | ✓ Yes     | 0.68  |
+| 7    | doc_G    | বাংলাদেশের রাজধানীতে...        | ✓ Yes     | 0.65  |
+| 8    | doc_H    | Sports news Bangladesh         | ✗ No      | 0.61  |
+| 9    | doc_I    | Economic development           | ✗ No      | 0.58  |
+| 10   | doc_J    | Entertainment news             | ✗ No      | 0.55  |
+| ...  | ...      | ...                            | ...       | ...   |
+| 50   | doc_Z    | Random article                 | ✗ No      | 0.12  |
+
+---
+
+#### 1. Precision@10 Calculation
+
+**Definition**: Out of the top 10 results shown to the user, what fraction are actually relevant?
+
+**Formula**: `P@10 = (Number of relevant documents in top 10) / 10`
+
+**Purpose**: Measures the accuracy of top results. High precision means users see mostly relevant documents.
+
+**Step-by-step**:
+
+1. Look at top 10 results: doc_A, doc_B, doc_C, doc_D, doc_E, doc_F, doc_G, doc_H, doc_I, doc_J
+2. Count relevant ones: doc_A ✓, doc_C ✓, doc_F ✓, doc_G ✓
+3. Total relevant in top 10 = 4
+4. P@10 = 4 / 10 = **0.40** (40%)
+
+**Interpretation**:
+
+- 40% of top results are relevant
+- User sees 4 good results and 6 irrelevant ones
+- Moderate precision - room for improvement
+
+**Why it matters**: Users typically only look at top 10 results. If precision is low, they waste time on irrelevant documents.
+
+---
+
+#### 2. Recall@50 Calculation
+
+**Definition**: Out of ALL relevant documents that exist, what fraction did we find in the top 50 results?
+
+**Formula**: `R@50 = (Relevant documents found in top 50) / (Total relevant documents)`
+
+**Purpose**: Measures coverage. High recall means we didn't miss important documents.
+
+**Step-by-step**:
+
+1. Total relevant documents in dataset = 4 (doc_A, doc_C, doc_F, doc_G)
+2. Check which ones appear in top 50:
+   - doc_A: ✓ Found at position 1
+   - doc_C: ✓ Found at position 3
+   - doc_F: ✓ Found at position 6
+   - doc_G: ✓ Found at position 7
+3. All 4 relevant docs are in top 50
+4. R@50 = 4 / 4 = **1.00** (100%)
+
+**Interpretation**:
+
+- Found ALL relevant documents
+- No relevant document was missed or ranked below position 50
+- Perfect recall for this query
+
+**Example of lower recall**: If doc_G appeared at position 75 instead:
+
+- R@50 = 3 / 4 = 0.75 (75%)
+- We missed one relevant document
+
+**Why it matters**: Low recall means users miss important information even if they scroll through 50 results.
+
+---
+
+#### 3. MRR (Mean Reciprocal Rank) Calculation
+
+**Definition**: How quickly does the user find the FIRST relevant result?
+
+**Formula**: `MRR = 1 / (Position of first relevant document)`
+
+**Purpose**: Measures immediate satisfaction. Users want relevant results immediately.
+
+**Step-by-step**:
+
+1. Scan results from top to find first relevant document
+2. Position 1: doc_A → Relevant! ✓
+3. First relevant position = 1
+4. MRR = 1 / 1 = **1.00** (100%)
+
+**Interpretation**:
+
+- Perfect score (1.00) because first result is relevant
+- User gets what they need immediately
+
+**Examples with different first positions**:
+
+- First relevant at position 1: MRR = 1/1 = 1.000 (perfect)
+- First relevant at position 2: MRR = 1/2 = 0.500
+- First relevant at position 3: MRR = 1/3 = 0.333
+- First relevant at position 5: MRR = 1/5 = 0.200
+- First relevant at position 10: MRR = 1/10 = 0.100
+
+**Why it matters**: If first relevant result is at position 20, MRR = 0.05 (very poor). Users may give up before scrolling that far.
+
+---
+
+#### 4. nDCG@10 (Normalized Discounted Cumulative Gain) Calculation
+
+**Definition**: Measures ranking quality by rewarding relevant documents at TOP positions more heavily.
+
+**Key Concept**: A relevant document at position 1 is MORE valuable than at position 10 because users look at top results first.
+
+**Formula**:
+
+```
+DCG@10 = Σ(i=1 to 10) relevance(i) / log₂(i + 1)
+nDCG@10 = DCG@10 / IDCG@10
+```
+
+Where:
+
+- `relevance(i)` = 1 if document at position i is relevant, 0 otherwise
+- `log₂(i + 1)` = discount factor (makes lower positions worth less)
+- `IDCG` = Ideal DCG (best possible DCG with perfect ranking)
+
+---
+
+**Step 1: Calculate DCG (Discounted Cumulative Gain)**
+
+Go through each position and calculate: `relevance / log₂(position + 1)`
+
+| Position | Doc   | Relevant? | Relevance | log₂(pos+1)      | Contribution    |
+| -------- | ----- | --------- | --------- | ---------------- | --------------- |
+| 1        | doc_A | ✓ Yes     | 1         | log₂(2) = 1.000  | 1/1.000 = 1.000 |
+| 2        | doc_B | ✗ No      | 0         | log₂(3) = 1.585  | 0/1.585 = 0.000 |
+| 3        | doc_C | ✓ Yes     | 1         | log₂(4) = 2.000  | 1/2.000 = 0.500 |
+| 4        | doc_D | ✗ No      | 0         | log₂(5) = 2.322  | 0/2.322 = 0.000 |
+| 5        | doc_E | ✗ No      | 0         | log₂(6) = 2.585  | 0/2.585 = 0.000 |
+| 6        | doc_F | ✓ Yes     | 1         | log₂(7) = 2.807  | 1/2.807 = 0.356 |
+| 7        | doc_G | ✓ Yes     | 1         | log₂(8) = 3.000  | 1/3.000 = 0.333 |
+| 8        | doc_H | ✗ No      | 0         | log₂(9) = 3.170  | 0/3.170 = 0.000 |
+| 9        | doc_I | ✗ No      | 0         | log₂(10) = 3.322 | 0/3.322 = 0.000 |
+| 10       | doc_J | ✗ No      | 0         | log₂(11) = 3.459 | 0/3.459 = 0.000 |
+
+**DCG@10 = 1.000 + 0.000 + 0.500 + 0.000 + 0.000 + 0.356 + 0.333 + 0.000 + 0.000 + 0.000**
+
+**DCG@10 = 2.189**
+
+---
+
+**Step 2: Calculate IDCG (Ideal DCG)**
+
+What if we had PERFECT ranking? All relevant docs at the top:
+
+| Position | Ideal Doc | Relevant? | Relevance | log₂(pos+1)     | Contribution    |
+| -------- | --------- | --------- | --------- | --------------- | --------------- |
+| 1        | doc_A     | ✓ Yes     | 1         | log₂(2) = 1.000 | 1/1.000 = 1.000 |
+| 2        | doc_C     | ✓ Yes     | 1         | log₂(3) = 1.585 | 1/1.585 = 0.631 |
+| 3        | doc_F     | ✓ Yes     | 1         | log₂(4) = 2.000 | 1/2.000 = 0.500 |
+| 4        | doc_G     | ✓ Yes     | 1         | log₂(5) = 2.322 | 1/2.322 = 0.431 |
+| 5-10     | (others)  | ✗ No      | 0         | -               | 0.000           |
+
+**IDCG@10 = 1.000 + 0.631 + 0.500 + 0.431 = 2.562**
+
+---
+
+**Step 3: Normalize**
+
+**nDCG@10 = DCG@10 / IDCG@10 = 2.189 / 2.562 = 0.854** (85.4%)
+
+**Interpretation**:
+
+- 85.4% of ideal ranking quality achieved
+- Good but not perfect (perfect would be 1.00)
+- Lost some value because doc_F and doc_G are at positions 6-7 instead of 2-3
+
+**Why not 1.00?**: If we had perfect ranking, doc_C would be at position 2 (contributing 0.631 instead of 0.500), and doc_F/G would be at positions 3-4 (contributing more).
+
+**Comparison scenarios**:
+
+- **Current ranking**: doc_A(1), doc_C(3), doc_F(6), doc_G(7) → nDCG = 0.854
+- **Perfect ranking**: doc_A(1), doc_C(2), doc_F(3), doc_G(4) → nDCG = 1.000
+- **Poor ranking**: doc_A(5), doc_C(8), doc_F(15), doc_G(20) → nDCG ≈ 0.45
+
+---
+
+#### Summary Table
+
+| Metric      | Value | Meaning                                  | Quality                       |
+| ----------- | ----- | ---------------------------------------- | ----------------------------- |
+| **P@10**    | 0.40  | 4 out of 10 top results are relevant     | Moderate - could be better    |
+| **R@50**    | 1.00  | Found all 4 relevant documents in top 50 | Perfect - no document missed  |
+| **MRR**     | 1.00  | First result is relevant                 | Perfect - immediate answer    |
+| **nDCG@10** | 0.854 | 85% of ideal ranking quality             | Good - relevant docs near top |
+
+#### Overall System Assessment
+
+**Strengths**:
+
+- Excellent recall (1.00) - doesn't miss relevant documents
+- Perfect MRR (1.00) - user gets answer immediately
+- Good ranking quality (nDCG 0.854)
+
+**Weaknesses**:
+
+- Moderate precision (0.40) - 6 out of 10 results are irrelevant
+- Could improve by filtering out doc_B, doc_D, doc_E (traffic, politics, weather)
+
+**Actionable Improvements**:
+
+1. Improve query understanding to filter topic-irrelevant results
+2. Boost exact phrase matches (e.g., "air pollution" / "বায়ু দূষণ")
+3. Add domain filtering (environment/pollution category)
+4. Fine-tune fusion weights to reduce irrelevant results
+
 ## Data Flow
 
 ```
