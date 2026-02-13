@@ -3,7 +3,9 @@
   "methods": [
     "hybrid",
     "bm25",
-    "semantic"
+    "semantic",
+    "tf-idf",
+    "fuzzy"
   ],
   "per_query_results": {
     "q001": {
@@ -48,6 +50,36 @@
         "mrr": 1.0,
         "query_text": "climate change Bangladesh",
         "method": "semantic",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q001",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "climate change Bangladesh",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q001",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "climate change Bangladesh",
+        "method": "fuzzy",
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
@@ -98,6 +130,36 @@
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q002",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.9674679834891693,
+        "average_precision": 0.9166666666666666,
+        "mrr": 1.0,
+        "query_text": "COVID-19 pandemic Bangladesh",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q002",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.9674679834891693,
+        "average_precision": 0.9166666666666666,
+        "mrr": 1.0,
+        "query_text": "COVID-19 pandemic Bangladesh",
+        "method": "fuzzy",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
       }
     },
     "q003": {
@@ -142,6 +204,36 @@
         "mrr": 1.0,
         "query_text": "জলবায়ু পরিবর্তন",
         "method": "semantic",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q003",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.9674679834891693,
+        "average_precision": 0.9166666666666666,
+        "mrr": 1.0,
+        "query_text": "জলবায়ু পরিবর্তন",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q003",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.9674679834891693,
+        "average_precision": 0.9166666666666666,
+        "mrr": 1.0,
+        "query_text": "জলবায়ু পরিবর্তন",
+        "method": "fuzzy",
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
@@ -192,6 +284,36 @@
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q004",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 1.0,
+        "average_precision": 1.0,
+        "mrr": 1.0,
+        "query_text": "করোনা ভাইরাস",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q004",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 1.0,
+        "average_precision": 1.0,
+        "mrr": 1.0,
+        "query_text": "করোনা ভাইরাস",
+        "method": "fuzzy",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
       }
     },
     "q005": {
@@ -236,6 +358,36 @@
         "mrr": 1.0,
         "query_text": "Bangladesh politics election",
         "method": "semantic",
+        "num_relevant": 3,
+        "num_retrieved": 6,
+        "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q005",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "Bangladesh politics election",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 6,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q005",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "Bangladesh politics election",
+        "method": "fuzzy",
         "num_relevant": 3,
         "num_retrieved": 6,
         "recall_achieved": 3
@@ -286,6 +438,36 @@
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q006",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.9674679834891693,
+        "average_precision": 0.9166666666666666,
+        "mrr": 1.0,
+        "query_text": "শিক্ষা ব্যবস্থা",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q006",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.9674679834891693,
+        "average_precision": 0.9166666666666666,
+        "mrr": 1.0,
+        "query_text": "শিক্ষা ব্যবস্থা",
+        "method": "fuzzy",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
       }
     },
     "q007": {
@@ -330,6 +512,36 @@
         "mrr": 1.0,
         "query_text": "economic development",
         "method": "semantic",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q007",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "economic development",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q007",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "economic development",
+        "method": "fuzzy",
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
@@ -380,6 +592,36 @@
         "num_relevant": 3,
         "num_retrieved": 5,
         "recall_achieved": 3
+      },
+      "tf-idf": {
+        "query_id": "q008",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "technology innovation",
+        "method": "tf-idf",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
+      },
+      "fuzzy": {
+        "query_id": "q008",
+        "precision_at_10": 0.3,
+        "precision_at_5": 0.6,
+        "recall_at_50": 1.0,
+        "recall_at_10": 1.0,
+        "ndcg_at_10": 0.8854598815714874,
+        "average_precision": 0.7555555555555555,
+        "mrr": 1.0,
+        "query_text": "technology innovation",
+        "method": "fuzzy",
+        "num_relevant": 3,
+        "num_retrieved": 5,
+        "recall_achieved": 3
       }
     }
   },
@@ -405,6 +647,26 @@
       "num_queries": 8
     },
     "semantic": {
+      "mean_precision_at_10": 0.3,
+      "mean_precision_at_5": 0.6,
+      "mean_recall_at_50": 1.0,
+      "mean_recall_at_10": 1.0,
+      "mean_ndcg_at_10": 0.9305304345941822,
+      "mean_average_precision": 0.8465277777777778,
+      "mean_reciprocal_rank": 1.0,
+      "num_queries": 8
+    },
+    "tf-idf": {
+      "mean_precision_at_10": 0.3,
+      "mean_precision_at_5": 0.6,
+      "mean_recall_at_50": 1.0,
+      "mean_recall_at_10": 1.0,
+      "mean_ndcg_at_10": 0.9305304345941822,
+      "mean_average_precision": 0.8465277777777778,
+      "mean_reciprocal_rank": 1.0,
+      "num_queries": 8
+    },
+    "fuzzy": {
       "mean_precision_at_10": 0.3,
       "mean_precision_at_5": 0.6,
       "mean_recall_at_50": 1.0,
