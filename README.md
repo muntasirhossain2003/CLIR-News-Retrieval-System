@@ -345,17 +345,6 @@ This project uses:
 
 ---
 
-## 📈 Next Steps (TODO)
-
-- [ ] Implement evaluation metrics (Module D)
-- [ ] Create labeled query dataset
-- [ ] Write literature review (Module E)
-- [ ] Complete error analysis (Module F)
-- [ ] Add innovation component (Module G)
-- [ ] Generate final report
-
----
-
 ## 👥 Contributors
 
 - Siyam Bhuiyan (210041215)
