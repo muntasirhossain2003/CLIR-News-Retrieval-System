@@ -1,0 +1,3 @@
+query_id,query_text,doc_id,doc_title,doc_url,language,relevant,confidence,annotator,notes
+q001,climate change Bangladesh,doc_123,Climate Crisis in Bangladesh,https://example.com/article,english,yes,3,annotator_1,Directly addresses the query
+q001,climate change Bangladesh,doc_456,Sports News,https://example.com/sports,english,no,3,annotator_1,Unrelated to query

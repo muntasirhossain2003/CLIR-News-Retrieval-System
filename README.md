@@ -2,6 +2,10 @@
 
 A multilingual news retrieval system for Bangla and English documents using lexical, semantic, and hybrid retrieval methods.
 
+## Summary
+
+This project builds a cross-lingual information retrieval pipeline for Bangla and English news. It crawls and cleans articles, constructs lexical and semantic indexes, and supports multiple retrieval strategies (BM25, TF-IDF, fuzzy matching, semantic embeddings, and hybrid ranking). The system includes a query pipeline with language detection, named entity extraction, and optional translation, plus a Streamlit UI for interactive search and comparison across methods.
+
 ## 📊 Project Status
 
 - **Documents Collected:** 5,170 (2,585 Bangla + 2,585 English)
@@ -308,7 +312,7 @@ python build_unified_indexes.py
 - **Module B:** Query Processing ([README](src/Module B — Query Processing & Cross-Lingual Handling/README.md))
 - **Module C:** Retrieval Models (see code comments)
 - **Module D:** Evaluation (TODO)
-- **Module E:** Report (TODO)
+- **Module E:** Report (see Module E folder)
 
 ---
 
@@ -351,6 +355,13 @@ This project uses:
 - [ ] Generate final report
 
 ---
+
+## 👥 Contributors
+
+- Siyam Bhuiyan (210041215)
+- Syed Huzzatullah Mihad (210041218)
+- Rafid Ahmed (210041232)
+- Muntasir Hossain (210041265)
 
 ## 📄 License
 
