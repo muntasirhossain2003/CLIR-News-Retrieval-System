@@ -4,10 +4,19 @@ import sys
 import os
 
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+PROJECT_ROOT = os.path.dirname(__file__)
+sys.path.append(os.path.join(PROJECT_ROOT, 'src'))
 
-from src.MO.crawlers.bangla_crawlers import get_bangla_crawlers
-from src.MO.crawlers.english_crawlers import get_english_crawlers
+# Module A folder name is not a valid Python package name. Add it directly.
+module_a_path = os.path.join(
+    PROJECT_ROOT,
+    'src',
+    'Module A — Dataset Construction & Indexing',
+)
+sys.path.append(module_a_path)
+
+from crawlers.bangla_crawlers import get_bangla_crawlers
+from crawlers.english_crawlers import get_english_crawlers
 
 def main():
     parser = argparse.ArgumentParser(description="CLIR Assignment Crawler")

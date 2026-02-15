@@ -10,11 +10,11 @@ venv/
 
 # Project specific
 logs/
-data/
+
 .gemini/
 
 # Indexing - large files and generated data
-indexes/
+
 models/
 *.npy
 *.bin

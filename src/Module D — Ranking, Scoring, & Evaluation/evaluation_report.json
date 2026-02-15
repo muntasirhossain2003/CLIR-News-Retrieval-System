@@ -1,0 +1,777 @@
+{
+  "overall": {
+    "test_queries": 8,
+    "methods": [
+      "bm25",
+      "tfidf",
+      "fuzzy",
+      "semantic",
+      "hybrid"
+    ],
+    "per_query_results": {
+      "q001": {
+        "bm25": {
+          "query_id": "q001",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "climate change Bangladesh",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 3
+        },
+        "tfidf": {
+          "query_id": "q001",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "climate change Bangladesh",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 3
+        },
+        "fuzzy": {
+          "query_id": "q001",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "climate change Bangladesh",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q001",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "climate change Bangladesh",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q001",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "climate change Bangladesh",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q002": {
+        "bm25": {
+          "query_id": "q002",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "COVID-19 pandemic Bangladesh",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "tfidf": {
+          "query_id": "q002",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "COVID-19 pandemic Bangladesh",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "fuzzy": {
+          "query_id": "q002",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "COVID-19 pandemic Bangladesh",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q002",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "COVID-19 pandemic Bangladesh",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q002",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "COVID-19 pandemic Bangladesh",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q003": {
+        "bm25": {
+          "query_id": "q003",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "জলবায়ু পরিবর্তন",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 3
+        },
+        "tfidf": {
+          "query_id": "q003",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "জলবায়ু পরিবর্তন",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 3
+        },
+        "fuzzy": {
+          "query_id": "q003",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "জলবায়ু পরিবর্তন",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q003",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "জলবায়ু পরিবর্তন",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q003",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "জলবায়ু পরিবর্তন",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q004": {
+        "bm25": {
+          "query_id": "q004",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "করোনা ভাইরাস",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "tfidf": {
+          "query_id": "q004",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "করোনা ভাইরাস",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "fuzzy": {
+          "query_id": "q004",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "করোনা ভাইরাস",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q004",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "করোনা ভাইরাস",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q004",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "করোনা ভাইরাস",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q005": {
+        "bm25": {
+          "query_id": "q005",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "Bangladesh politics election",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 3
+        },
+        "tfidf": {
+          "query_id": "q005",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "Bangladesh politics election",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 3
+        },
+        "fuzzy": {
+          "query_id": "q005",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "Bangladesh politics election",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q005",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "Bangladesh politics election",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q005",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "Bangladesh politics election",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q006": {
+        "bm25": {
+          "query_id": "q006",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "শিক্ষা ব্যবস্থা",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "tfidf": {
+          "query_id": "q006",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "শিক্ষা ব্যবস্থা",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "fuzzy": {
+          "query_id": "q006",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "শিক্ষা ব্যবস্থা",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q006",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "শিক্ষা ব্যবস্থা",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q006",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "শিক্ষা ব্যবস্থা",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q007": {
+        "bm25": {
+          "query_id": "q007",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "economic development",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 5
+        },
+        "tfidf": {
+          "query_id": "q007",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "economic development",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 5
+        },
+        "fuzzy": {
+          "query_id": "q007",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "economic development",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q007",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "economic development",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q007",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "economic development",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      },
+      "q008": {
+        "bm25": {
+          "query_id": "q008",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "technology innovation",
+          "method": "bm25",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "tfidf": {
+          "query_id": "q008",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "technology innovation",
+          "method": "tfidf",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "fuzzy": {
+          "query_id": "q008",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "technology innovation",
+          "method": "fuzzy",
+          "num_relevant": 3,
+          "num_retrieved": 0
+        },
+        "semantic": {
+          "query_id": "q008",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "technology innovation",
+          "method": "semantic",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        },
+        "hybrid": {
+          "query_id": "q008",
+          "precision_at_10": 0.0,
+          "precision_at_5": 0.0,
+          "recall_at_50": 0.0,
+          "recall_at_10": 0.0,
+          "ndcg_at_10": 0.0,
+          "average_precision": 0.0,
+          "mrr": 0.0,
+          "query_text": "technology innovation",
+          "method": "hybrid",
+          "num_relevant": 3,
+          "num_retrieved": 10
+        }
+      }
+    },
+    "aggregate_metrics": {
+      "bm25": {
+        "mean_precision_at_10": 0.0,
+        "mean_precision_at_5": 0.0,
+        "mean_recall_at_50": 0.0,
+        "mean_recall_at_10": 0.0,
+        "mean_ndcg_at_10": 0.0,
+        "mean_average_precision": 0.0,
+        "mean_reciprocal_rank": 0.0,
+        "num_queries": 8
+      },
+      "tfidf": {
+        "mean_precision_at_10": 0.0,
+        "mean_precision_at_5": 0.0,
+        "mean_recall_at_50": 0.0,
+        "mean_recall_at_10": 0.0,
+        "mean_ndcg_at_10": 0.0,
+        "mean_average_precision": 0.0,
+        "mean_reciprocal_rank": 0.0,
+        "num_queries": 8
+      },
+      "fuzzy": {
+        "mean_precision_at_10": 0.0,
+        "mean_precision_at_5": 0.0,
+        "mean_recall_at_50": 0.0,
+        "mean_recall_at_10": 0.0,
+        "mean_ndcg_at_10": 0.0,
+        "mean_average_precision": 0.0,
+        "mean_reciprocal_rank": 0.0,
+        "num_queries": 8
+      },
+      "semantic": {
+        "mean_precision_at_10": 0.0,
+        "mean_precision_at_5": 0.0,
+        "mean_recall_at_50": 0.0,
+        "mean_recall_at_10": 0.0,
+        "mean_ndcg_at_10": 0.0,
+        "mean_average_precision": 0.0,
+        "mean_reciprocal_rank": 0.0,
+        "num_queries": 8
+      },
+      "hybrid": {
+        "mean_precision_at_10": 0.0,
+        "mean_precision_at_5": 0.0,
+        "mean_recall_at_50": 0.0,
+        "mean_recall_at_10": 0.0,
+        "mean_ndcg_at_10": 0.0,
+        "mean_average_precision": 0.0,
+        "mean_reciprocal_rank": 0.0,
+        "num_queries": 8
+      }
+    }
+  },
+  "cross_lingual": {
+    "english->unknown": {
+      "query_lang": "english",
+      "doc_lang": "unknown",
+      "methods": {
+        "bm25": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 5
+        },
+        "tfidf": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 5
+        },
+        "fuzzy": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 5
+        },
+        "semantic": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 5
+        },
+        "hybrid": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 5
+        }
+      }
+    },
+    "bangla->unknown": {
+      "query_lang": "bangla",
+      "doc_lang": "unknown",
+      "methods": {
+        "bm25": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 3
+        },
+        "tfidf": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 3
+        },
+        "fuzzy": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 3
+        },
+        "semantic": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 3
+        },
+        "hybrid": {
+          "p10": 0.0,
+          "r50": 0.0,
+          "ndcg10": 0.0,
+          "mrr": 0.0,
+          "num_queries": 3
+        }
+      }
+    }
+  },
+  "error_analysis": {
+    "total_errors": 0,
+    "error_summary": {},
+    "examples": []
+  },
+  "performance": {
+    "bm25": {
+      "avg_query_time_ms": 2411.4322662353516,
+      "avg_peak_mem_mb": 22.61566460132599,
+      "index_size_mb": 5.439177513122559
+    },
+    "tfidf": {
+      "avg_query_time_ms": 628.8822293281555,
+      "avg_peak_mem_mb": 5.469386458396912,
+      "index_size_mb": 5.439177513122559
+    },
+    "fuzzy": {
+      "avg_query_time_ms": 599.0326702594757,
+      "avg_peak_mem_mb": 0.7919586896896362,
+      "index_size_mb": 0.0
+    },
+    "semantic": {
+      "avg_query_time_ms": 8680.982619524002,
+      "avg_peak_mem_mb": 35.73333740234375,
+      "index_size_mb": 0.7908039093017578
+    },
+    "hybrid": {
+      "avg_query_time_ms": 4279.4517278671265,
+      "avg_peak_mem_mb": 5.885572671890259,
+      "index_size_mb": 6.229981422424316
+    }
+  },
+  "interpretation": "BM25 meets no targets. TFIDF meets no targets. FUZZY meets no targets. SEMANTIC meets no targets. HYBRID meets no targets.",
+  "cross_lingual_observations": [
+    "Compare monolingual vs cross-lingual groups using the table above.",
+    "Use target_lang in queries to control cross-lingual direction."
+  ],
+  "error_categories": [
+    "Translation Failures",
+    "Named Entity Mismatches",
+    "Cross-Script Issues",
+    "Code-Switching",
+    "Semantic vs Lexical Wins"
+  ],
+  "key_findings": [
+    "Best overall method is the one with highest P@10 and nDCG@10.",
+    "Hybrid often balances recall and precision in mixed-language queries.",
+    "Cross-lingual performance depends on translation and entity matching.",
+    "Most common failure mode appears in error distribution.",
+    "Use hybrid for production unless latency or resource limits dominate."
+  ]
+}

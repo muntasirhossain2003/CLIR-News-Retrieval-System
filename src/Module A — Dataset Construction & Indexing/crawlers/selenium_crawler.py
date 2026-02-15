@@ -8,7 +8,10 @@ from .selenium_buttons import ButtonClickStrategy
 import time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from ..utils import clean_text, parse_date
+try:
+    from ..utils import clean_text, parse_date
+except ImportError:
+    from utils import clean_text, parse_date
 
 
 class SeleniumCrawler(BaseCrawler):

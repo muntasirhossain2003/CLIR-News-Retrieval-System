@@ -2,7 +2,10 @@ from .base_crawler import BaseCrawler
 import logging
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from ..utils import clean_text, parse_date
+try:
+    from ..utils import clean_text, parse_date
+except ImportError:
+    from utils import clean_text, parse_date
 
 class GenericNewsCrawler(BaseCrawler):
     def __init__(self, base_url, language, source_name, selectors, start_urls=None, delay=1.0, pagination_param=None):
