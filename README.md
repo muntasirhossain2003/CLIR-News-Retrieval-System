@@ -106,11 +106,11 @@ Then open: http://localhost:8501
 
 **Features:**
 
-- 🌐 Cross-lingual search (Bangla ↔ English)
-- 📊 Multiple retrieval models
-- 🎯 Confidence scores
-- ⏱️ Performance metrics
-- 🔍 Document previews
+- Cross-lingual search (Bangla ↔ English)
+- Multiple retrieval models
+- Confidence scores
+- Performance metrics
+- Document previews
 
 ---
 
